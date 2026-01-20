@@ -59,6 +59,10 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .btn:active { transform: scale(0.98); }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -128,17 +132,43 @@
             justify-content: center;
             align-items: center;
             overflow: auto;
+            position: relative;
         }
         .screenshot-container img {
             max-width: 100%;
             min-width: 100%;
             border-radius: 8px;
-            cursor: zoom-in;
         }
-        .screenshot-container img:active {
-            transform: scale(1.5);
-            cursor: zoom-out;
+        
+        /* 결과 오버레이 */
+        .result-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            font-size: 32px;
+            font-weight: bold;
+            z-index: 10;
         }
+        .result-overlay.correct {
+            background: rgba(39, 174, 96, 0.85);
+            color: white;
+        }
+        .result-overlay.wrong {
+            background: rgba(231, 76, 60, 0.85);
+            color: white;
+        }
+        .result-overlay.loading {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 18px;
+        }
+        .hidden { display: none !important; }
         .answer-form {
             display: flex;
             gap: 10px;
@@ -155,6 +185,10 @@
         .answer-form input:focus {
             outline: none;
             border-color: #667eea;
+        }
+        .answer-form input:disabled {
+            background: #f0f0f0;
+            cursor: not-allowed;
         }
         .answer-form button {
             padding: 15px 25px;
@@ -256,6 +290,7 @@
                         
                         <div class="screenshot-container">
                             <img id="screenshot" src="" alt="캡챠 이미지">
+                            <div id="result-overlay" class="result-overlay hidden"></div>
                         </div>
                         
                         <div class="answer-form">
@@ -280,6 +315,8 @@
         let pollInterval = null;
         let isWorking = false;
         let lastMessageShown = '';  // 중복 메시지 방지
+        let isWaitingResult = false;  // 답변 제출 후 결과 대기 중
+        let lastScreenshot = '';  // 이전 스크린샷 (변경 감지용)
         
         // 로그인
         async function login() {
@@ -347,7 +384,9 @@
                 
                 if (data.success) {
                     isWorking = true;
-                    lastMessageShown = '';  // 메시지 리셋
+                    lastMessageShown = '';
+                    isWaitingResult = false;
+                    lastScreenshot = '';
                     
                     document.getElementById('start-btn').classList.add('hidden');
                     document.getElementById('stop-btn').classList.remove('hidden');
@@ -378,42 +417,47 @@
                     return;
                 }
                 
-                // 메시지가 있으면 표시 (중복 방지)
+                // 메시지가 있으면 처리
                 if (data.message) {
                     if (data.message.includes('타임아웃') || data.message.includes('종료')) {
                         showMessage(data.message, 'error');
                         stopWork();
                         return;
                     }
-                    
-                    // 틀린 경우 - 에러 메시지 표시 (한 번만)
-                    if (data.message.includes('틀렸')) {
-                        if (lastMessageShown !== data.message) {
-                            showMessage('❌ 틀렸습니다! 다시 시도해주세요.', 'error');
-                            lastMessageShown = data.message;
-                        }
-                        // 메시지에서 질문 추출
-                        const questionPart = data.message.replace(/❌\s*틀렸습니다!\s*/g, '').trim();
-                        if (questionPart && questionPart.length > 5) {
-                            document.getElementById('question-box').textContent = questionPart;
-                        }
-                    } else if (data.message.length > 5) {
-                        // 일반 질문
-                        document.getElementById('question-box').textContent = data.message;
-                        lastMessageShown = '';  // 새 질문이면 리셋
-                    }
                 }
                 
-                // 스크린샷이 있으면 캡챠 표시
+                // 스크린샷이 있으면 처리
                 if (data.screenshot) {
-                    setStatus('working', '📝 캡챠를 입력하세요!');
-                    document.getElementById('screenshot').src = 'data:image/png;base64,' + data.screenshot;
-                    document.getElementById('captcha-section').classList.remove('hidden');
-                    document.getElementById('answer-input').focus();
+                    // 새로운 스크린샷인지 확인
+                    const isNewScreenshot = data.screenshot !== lastScreenshot;
                     
-                    // 질문 표시 (message 필드에서, 틀렸다는 메시지가 아닐 때)
-                    if (data.message && !data.message.includes('틀렸') && !data.message.includes('타임아웃')) {
-                        document.getElementById('question-box').textContent = data.message;
+                    if (isWaitingResult && isNewScreenshot) {
+                        // 결과 대기 중이었고 새 스크린샷이 왔다 = 결과 처리
+                        if (data.message && data.message.includes('틀렸')) {
+                            // 틀림
+                            showResultOverlay('wrong', '❌ 틀렸습니다!');
+                            setTimeout(() => {
+                                hideResultOverlay();
+                                updateScreenshot(data);
+                                isWaitingResult = false;
+                                disableInput(false);
+                            }, 1500);
+                        } else {
+                            // 맞음 (새 문제로 넘어감)
+                            showResultOverlay('correct', '✅ 정답!');
+                            updateStats();
+                            setTimeout(() => {
+                                hideResultOverlay();
+                                updateScreenshot(data);
+                                isWaitingResult = false;
+                                disableInput(false);
+                            }, 1500);
+                        }
+                        lastScreenshot = data.screenshot;
+                    } else if (!isWaitingResult) {
+                        // 일반 상태 - 스크린샷 표시
+                        updateScreenshot(data);
+                        lastScreenshot = data.screenshot;
                     }
                 } else {
                     setStatus('waiting', '⏳ 다음 작업 대기 중...');
@@ -425,6 +469,39 @@
             }
         }
         
+        // 스크린샷 업데이트 함수
+        function updateScreenshot(data) {
+            setStatus('working', '📝 캡챠를 입력하세요!');
+            document.getElementById('screenshot').src = 'data:image/png;base64,' + data.screenshot;
+            document.getElementById('captcha-section').classList.remove('hidden');
+            document.getElementById('answer-input').focus();
+            
+            // 질문 표시
+            if (data.message && !data.message.includes('틀렸') && !data.message.includes('타임아웃')) {
+                document.getElementById('question-box').textContent = data.message;
+            }
+        }
+        
+        // 결과 오버레이 표시
+        function showResultOverlay(type, text) {
+            const overlay = document.getElementById('result-overlay');
+            overlay.className = 'result-overlay ' + type;
+            overlay.textContent = text;
+            overlay.classList.remove('hidden');
+        }
+        
+        // 결과 오버레이 숨기기
+        function hideResultOverlay() {
+            document.getElementById('result-overlay').classList.add('hidden');
+        }
+        
+        // 입력 비활성화/활성화
+        function disableInput(disabled) {
+            document.getElementById('answer-input').disabled = disabled;
+            const confirmBtn = document.querySelector('#captcha-section .btn-primary');
+            if (confirmBtn) confirmBtn.disabled = disabled;
+        }
+        
         // 답변 제출 - 수정된 API 호출
         async function submitAnswer() {
             const answer = document.getElementById('answer-input').value.trim();
@@ -434,7 +511,15 @@
                 return;
             }
             
+            // 이미 대기 중이면 무시
+            if (isWaitingResult) return;
+            
             try {
+                // 로딩 상태 표시
+                isWaitingResult = true;
+                showResultOverlay('loading', '⏳ 확인 중...');
+                disableInput(true);
+                
                 // 올바른 API 경로: /api/session/submit-answer
                 const resp = await fetch(`${API_SERVER}/api/session/submit-answer`, {
                     method: 'POST',
@@ -449,15 +534,19 @@
                 if (data.success) {
                     document.getElementById('answer-input').value = '';
                     setStatus('working', '⏳ 답변 확인 중...');
-                    lastMessageShown = '';  // 다음 에러 표시를 위해 리셋
-                    
-                    // 통계 업데이트
-                    setTimeout(updateStats, 3000);
+                    lastMessageShown = '';
+                    // 결과는 pollSession에서 처리
                 } else {
                     showMessage('답변 제출 실패', 'error');
+                    isWaitingResult = false;
+                    hideResultOverlay();
+                    disableInput(false);
                 }
             } catch (e) {
                 showMessage('답변 제출 실패', 'error');
+                isWaitingResult = false;
+                hideResultOverlay();
+                disableInput(false);
             }
         }
         
@@ -479,6 +568,10 @@
             }
             
             isWorking = false;
+            isWaitingResult = false;
+            lastScreenshot = '';
+            hideResultOverlay();
+            disableInput(false);
             
             if (currentUser) {
                 try {
