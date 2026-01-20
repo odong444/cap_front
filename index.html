@@ -147,27 +147,46 @@
             left: 0;
             right: 0;
             bottom: 0;
-            display: flex;
+            display: none;
             justify-content: center;
             align-items: center;
             border-radius: 12px;
             font-size: 32px;
             font-weight: bold;
             z-index: 10;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .result-overlay.show {
+            display: flex;
         }
         .result-overlay.correct {
-            background: rgba(39, 174, 96, 0.85);
+            background: rgba(39, 174, 96, 0.9);
             color: white;
         }
         .result-overlay.wrong {
-            background: rgba(231, 76, 60, 0.85);
+            background: rgba(231, 76, 60, 0.9);
             color: white;
         }
         .result-overlay.loading {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             color: white;
             font-size: 18px;
         }
+        
+        /* 로딩 스피너 */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         .hidden { display: none !important; }
         .answer-form {
             display: flex;
@@ -485,14 +504,20 @@
         // 결과 오버레이 표시
         function showResultOverlay(type, text) {
             const overlay = document.getElementById('result-overlay');
-            overlay.className = 'result-overlay ' + type;
-            overlay.textContent = text;
-            overlay.classList.remove('hidden');
+            overlay.className = 'result-overlay show ' + type;
+            
+            if (type === 'loading') {
+                overlay.innerHTML = '<div class="spinner"></div><div>' + text + '</div>';
+            } else {
+                overlay.innerHTML = text;
+            }
         }
         
         // 결과 오버레이 숨기기
         function hideResultOverlay() {
-            document.getElementById('result-overlay').classList.add('hidden');
+            const overlay = document.getElementById('result-overlay');
+            overlay.className = 'result-overlay';
+            overlay.innerHTML = '';
         }
         
         // 입력 비활성화/활성화
