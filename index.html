@@ -412,6 +412,13 @@
                     // 폴링 시작 (0.5초마다 - 빠른 응답)
                     pollInterval = setInterval(pollSession, 500);
                     pollSession(); // 즉시 한 번 호출
+                } else {
+                    // 작업자 꽉 참
+                    if (data.error === 'full') {
+                        showMessage(data.message || '작업자가 많아 진행할 수 없습니다. 잠시 후 다시 시도해주세요.', 'error');
+                    } else {
+                        showMessage('작업 시작 실패', 'error');
+                    }
                 }
             } catch (e) {
                 showMessage('작업 시작 실패', 'error');
