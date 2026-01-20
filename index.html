@@ -34,20 +34,35 @@
         
         .content { padding: 15px; }
         
-        /* 로그인 폼 */
-        .login-form input {
+        /* 로그인/회원가입 폼 */
+        .login-form input, .login-form select {
             width: 100%;
-            padding: 15px;
+            padding: 12px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 15px;
+            font-size: 14px;
+            margin-bottom: 10px;
             transition: border-color 0.3s;
+            box-sizing: border-box;
         }
-        .login-form input:focus {
+        .login-form input:focus, .login-form select:focus {
             outline: none;
             border-color: #667eea;
         }
+        .login-form select {
+            background: white;
+            cursor: pointer;
+        }
+        .form-row {
+            position: relative;
+            margin-bottom: 5px;
+        }
+        .check-msg {
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .check-msg.available { color: #27ae60; }
+        .check-msg.unavailable { color: #e74c3c; }
         .btn {
             width: 100%;
             padding: 12px;
@@ -57,6 +72,14 @@
             font-weight: bold;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 10px;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
         }
         .btn:active { transform: scale(0.98); }
         .btn:disabled {
@@ -271,7 +294,60 @@
             <div id="login-section" class="login-form">
                 <input type="text" id="user-id" placeholder="아이디">
                 <input type="password" id="password" placeholder="비밀번호">
-                <button class="btn btn-primary" onclick="login()">로그인 / 자동가입</button>
+                <button class="btn btn-primary" onclick="login()">로그인</button>
+                <button class="btn btn-secondary" onclick="showRegister()">회원가입</button>
+            </div>
+            
+            <!-- 회원가입 -->
+            <div id="register-section" class="login-form hidden">
+                <h3 style="text-align:center; margin-bottom:15px; color:#333;">회원가입</h3>
+                
+                <div class="form-row">
+                    <input type="text" id="reg-userid" placeholder="아이디 (4자 이상)" onblur="checkUserId()">
+                    <span id="userid-check" class="check-msg"></span>
+                </div>
+                <div class="form-row">
+                    <input type="password" id="reg-password" placeholder="비밀번호 (4자 이상)">
+                </div>
+                <div class="form-row">
+                    <input type="password" id="reg-password-confirm" placeholder="비밀번호 확인">
+                </div>
+                <div class="form-row">
+                    <input type="text" id="reg-name" placeholder="이름">
+                </div>
+                <div class="form-row">
+                    <input type="tel" id="reg-phone" placeholder="연락처 (010-0000-0000)">
+                </div>
+                <div class="form-row">
+                    <input type="email" id="reg-email" placeholder="이메일">
+                </div>
+                
+                <h4 style="margin:15px 0 10px; color:#555; font-size:14px;">💳 출금 계좌 정보</h4>
+                <div class="form-row">
+                    <select id="reg-bank">
+                        <option value="">은행 선택</option>
+                        <option value="국민은행">국민은행</option>
+                        <option value="신한은행">신한은행</option>
+                        <option value="우리은행">우리은행</option>
+                        <option value="하나은행">하나은행</option>
+                        <option value="농협은행">농협은행</option>
+                        <option value="기업은행">기업은행</option>
+                        <option value="카카오뱅크">카카오뱅크</option>
+                        <option value="토스뱅크">토스뱅크</option>
+                        <option value="케이뱅크">케이뱅크</option>
+                        <option value="새마을금고">새마을금고</option>
+                        <option value="우체국">우체국</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="text" id="reg-account" placeholder="계좌번호 (- 없이 숫자만)">
+                </div>
+                <div class="form-row">
+                    <input type="text" id="reg-holder" placeholder="예금주">
+                </div>
+                
+                <button class="btn btn-primary" onclick="register()">가입하기</button>
+                <button class="btn btn-secondary" onclick="showLogin()">로그인으로 돌아가기</button>
             </div>
             
             <!-- 대시보드 -->
@@ -332,6 +408,146 @@
         let lastMessageShown = '';  // 중복 메시지 방지
         let isWaitingResult = false;  // 답변 제출 후 결과 대기 중
         let lastScreenshot = '';  // 이전 스크린샷 (변경 감지용)
+        
+        // 회원가입 폼 보여주기
+        function showRegister() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('register-section').classList.remove('hidden');
+        }
+        
+        // 로그인 폼 보여주기
+        function showLogin() {
+            document.getElementById('register-section').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
+        }
+        
+        // 아이디 중복 체크
+        async function checkUserId() {
+            const userId = document.getElementById('reg-userid').value.trim();
+            const checkMsg = document.getElementById('userid-check');
+            
+            if (!userId) {
+                checkMsg.textContent = '';
+                checkMsg.className = 'check-msg';
+                return;
+            }
+            
+            if (userId.length < 4) {
+                checkMsg.textContent = '4자 이상 입력하세요';
+                checkMsg.className = 'check-msg unavailable';
+                return;
+            }
+            
+            try {
+                const resp = await fetch(`${API_SERVER}/api/check-userid`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: userId})
+                });
+                const data = await resp.json();
+                
+                if (data.available) {
+                    checkMsg.textContent = '✓ ' + data.message;
+                    checkMsg.className = 'check-msg available';
+                } else {
+                    checkMsg.textContent = '✗ ' + data.message;
+                    checkMsg.className = 'check-msg unavailable';
+                }
+            } catch (e) {
+                checkMsg.textContent = '';
+            }
+        }
+        
+        // 회원가입
+        async function register() {
+            const userId = document.getElementById('reg-userid').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const passwordConfirm = document.getElementById('reg-password-confirm').value;
+            const name = document.getElementById('reg-name').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const bankName = document.getElementById('reg-bank').value;
+            const bankAccount = document.getElementById('reg-account').value.trim();
+            const accountHolder = document.getElementById('reg-holder').value.trim();
+            
+            // 유효성 검사
+            if (!userId || userId.length < 4) {
+                showMessage('아이디는 4자 이상이어야 합니다.', 'error');
+                return;
+            }
+            if (!password || password.length < 4) {
+                showMessage('비밀번호는 4자 이상이어야 합니다.', 'error');
+                return;
+            }
+            if (password !== passwordConfirm) {
+                showMessage('비밀번호가 일치하지 않습니다.', 'error');
+                return;
+            }
+            if (!name) {
+                showMessage('이름을 입력하세요.', 'error');
+                return;
+            }
+            if (!phone) {
+                showMessage('연락처를 입력하세요.', 'error');
+                return;
+            }
+            if (!email) {
+                showMessage('이메일을 입력하세요.', 'error');
+                return;
+            }
+            if (!bankName) {
+                showMessage('은행을 선택하세요.', 'error');
+                return;
+            }
+            if (!bankAccount) {
+                showMessage('계좌번호를 입력하세요.', 'error');
+                return;
+            }
+            if (!accountHolder) {
+                showMessage('예금주를 입력하세요.', 'error');
+                return;
+            }
+            
+            try {
+                const resp = await fetch(`${API_SERVER}/api/register`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: userId,
+                        password: password,
+                        password_confirm: passwordConfirm,
+                        name: name,
+                        phone: phone,
+                        email: email,
+                        bank_name: bankName,
+                        bank_account: bankAccount,
+                        account_holder: accountHolder
+                    })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    // 폼 초기화
+                    document.getElementById('reg-userid').value = '';
+                    document.getElementById('reg-password').value = '';
+                    document.getElementById('reg-password-confirm').value = '';
+                    document.getElementById('reg-name').value = '';
+                    document.getElementById('reg-phone').value = '';
+                    document.getElementById('reg-email').value = '';
+                    document.getElementById('reg-bank').value = '';
+                    document.getElementById('reg-account').value = '';
+                    document.getElementById('reg-holder').value = '';
+                    document.getElementById('userid-check').textContent = '';
+                    // 로그인 폼으로 돌아가기
+                    setTimeout(() => showLogin(), 2000);
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (e) {
+                showMessage('서버 연결 실패', 'error');
+            }
+        }
         
         // 로그인
         async function login() {
@@ -650,6 +866,7 @@
             currentUser = null;
             localStorage.removeItem('user');
             
+            document.getElementById('register-section').classList.add('hidden');
             document.getElementById('login-section').classList.remove('hidden');
             document.getElementById('dashboard').style.display = 'none';
         }
