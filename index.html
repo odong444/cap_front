@@ -26,13 +26,13 @@
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 25px;
+            padding: 12px;
             text-align: center;
         }
-        .header h1 { font-size: 24px; margin-bottom: 5px; }
-        .header p { opacity: 0.9; font-size: 14px; }
+        .header h1 { font-size: 18px; margin-bottom: 3px; }
+        .header p { opacity: 0.9; font-size: 12px; }
         
-        .content { padding: 25px; }
+        .content { padding: 15px; }
         
         /* 로그인 폼 */
         .login-form input {
@@ -50,10 +50,10 @@
         }
         .btn {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
@@ -81,37 +81,49 @@
         .stats {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
         .stat-card {
             background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 8px;
+            border-radius: 8px;
             text-align: center;
         }
         .stat-card .value {
-            font-size: 28px;
+            font-size: 18px;
             font-weight: bold;
             color: #667eea;
         }
         .stat-card .label {
             color: #666;
-            font-size: 14px;
-            margin-top: 5px;
+            font-size: 11px;
+        }
+        
+        /* 질문 표시 */
+        .question-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #856404;
         }
         
         /* 작업 영역 */
         .work-area {
             display: none;
-            margin-top: 20px;
+            margin-top: 10px;
         }
         .screenshot-container {
             background: #f0f0f0;
             border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 15px;
-            min-height: 300px;
+            padding: 8px;
+            margin-bottom: 10px;
+            min-height: 250px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -151,8 +163,9 @@
         /* 상태 표시 */
         .status {
             text-align: center;
-            padding: 20px;
+            padding: 8px;
             color: #666;
+            font-size: 13px;
         }
         .status.waiting { color: #f39c12; }
         .status.working { color: #3498db; }
@@ -237,6 +250,10 @@
                     <div id="status-text" class="status waiting">⏳ 작업 대기 중... (브라우저 준비 중)</div>
                     
                     <div id="captcha-section" class="hidden">
+                        <div id="question-box" class="question-box">
+                            영수증을 보고 질문에 답하세요
+                        </div>
+                        
                         <div class="screenshot-container">
                             <img id="screenshot" src="" alt="캡챠 이미지">
                         </div>
@@ -377,6 +394,11 @@
                     document.getElementById('screenshot').src = 'data:image/png;base64,' + data.screenshot;
                     document.getElementById('captcha-section').classList.remove('hidden');
                     document.getElementById('answer-input').focus();
+                    
+                    // 질문 표시 (message 필드에서)
+                    if (data.message && !data.message.includes('틀렸') && !data.message.includes('타임아웃')) {
+                        document.getElementById('question-box').textContent = data.message;
+                    }
                 } else {
                     setStatus('waiting', '⏳ 다음 작업 대기 중...');
                     document.getElementById('captcha-section').classList.add('hidden');
