@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>캡챠 풀이 - 리워드 적립</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        
+        h1 { text-align: center; color: #333; margin-bottom: 10px; font-size: 28px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+        
+        /* 탭 네비게이션 */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 5px;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        .stat { text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; color: #667eea; }
+        .stat-label { font-size: 12px; color: #666; margin-top: 5px; }
+        
+        input, select {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover { transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-secondary { background: #f0f0f0; color: #333; margin-top: 10px; }
+        .btn-danger { background: #dc3545; color: white; margin-top: 10px; }
+        .btn-success { background: #28a745; color: white; }
+        
+        .captcha-container {
+            text-align: center;
+            margin: 20px 0;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 15px;
+        }
+        .captcha-image {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .store-name {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            text-align: center;
+            padding: 10px;
+            background: #e8f4fd;
+            border-radius: 8px;
+        }
+        .store-name span { font-weight: 600; color: #333; }
+        
+        .message {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .message.success { background: #d4edda; color: #155724; }
+        .message.error { background: #f8d7da; color: #721c24; }
+        .message.info { background: #cce5ff; color: #004085; }
+        
+        .hidden { display: none !important; }
+        
+        /* 리워드 팝업 */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+            backdrop-filter: blur(5px);
+        }
+        .popup {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 25px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            text-align: center;
+            z-index: 1000;
+            min-width: 300px;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        .popup h2 { margin-bottom: 20px; }
+        .reward-amount {
+            font-size: 56px;
+            font-weight: bold;
+            color: #28a745;
+            margin: 20px 0;
+        }
+        
+        /* 히스토리 */
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-amount { font-weight: bold; }
+        .history-amount.positive { color: #28a745; }
+        .history-amount.negative { color: #dc3545; }
+        
+        /* 서버 상태 */
+        .server-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .status-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-dot.online { background: #28a745; }
+        .status-dot.offline { background: #dc3545; }
+        
+        .loading {
+            display: inline-block;
+            width: 20px; height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 로그인 화면 -->
+    <div id="login-screen" class="card">
+        <h1>🎯 캡챠 풀이</h1>
+        <p class="subtitle">문제를 풀고 리워드를 적립하세요!</p>
+        
+        <input type="text" id="user-id" placeholder="아이디" autocomplete="username">
+        <input type="password" id="password" placeholder="비밀번호" 
+               autocomplete="current-password" onkeypress="if(event.keyCode==13) login()">
+        <button class="btn-primary" onclick="login()">로그인 / 회원가입</button>
+        
+        <p style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+            처음이시면 아이디/비밀번호 입력 후 바로 가입됩니다
+        </p>
+    </div>
+    
+    <!-- 메인 화면 -->
+    <div id="main-screen" class="card hidden">
+        <h1>🎯 캡챠 풀이</h1>
+        <p class="subtitle">환영합니다, <span id="display-user"></span>님!</p>
+        
+        <!-- 탭 -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('work')">📝 작업</button>
+            <button class="tab" onclick="showTab('rewards')">💰 리워드</button>
+            <button class="tab" onclick="showTab('withdraw')">🏧 출금</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="total-rewards">0</div>
+                <div class="stat-label">💰 보유 포인트</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="total-solved">0</div>
+                <div class="stat-label">✅ 해결한 문제</div>
+            </div>
+        </div>
+        
+        <div id="message-area"></div>
+        
+        <!-- 작업 탭 -->
+        <div id="tab-work">
+            <div id="captcha-area" class="hidden">
+                <div class="store-name">🏪 스토어: <span id="store-name"></span></div>
+                <div class="captcha-container">
+                    <img id="captcha-image" class="captcha-image" src="" alt="캡챠">
+                </div>
+                <input type="text" id="captcha-answer" placeholder="정답을 입력하세요" 
+                       onkeypress="if(event.keyCode==13) submitAnswer()" autocomplete="off">
+                <button class="btn-primary" onclick="submitAnswer()">✓ 제출</button>
+                <button class="btn-secondary" onclick="refreshCaptcha()">🔄 새로고침</button>
+                <button class="btn-danger" onclick="skipTask()">⏭️ 스킵</button>
+            </div>
+            
+            <div id="start-area">
+                <button class="btn-primary" onclick="requestTask()">🚀 작업 시작하기</button>
+            </div>
+        </div>
+        
+        <!-- 리워드 탭 -->
+        <div id="tab-rewards" class="hidden">
+            <h3 style="margin-bottom: 15px;">📜 적립 내역</h3>
+            <div class="history-list" id="rewards-history">
+                <p style="text-align: center; color: #999;">로딩 중...</p>
+            </div>
+        </div>
+        
+        <!-- 출금 탭 -->
+        <div id="tab-withdraw" class="hidden">
+            <h3 style="margin-bottom: 15px;">🏧 출금 신청</h3>
+            <p style="margin-bottom: 15px; color: #666; font-size: 14px;">최소 출금액: 10,000P</p>
+            
+            <input type="number" id="withdraw-amount" placeholder="출금 금액" min="10000">
+            <select id="bank-name">
+                <option value="">은행 선택</option>
+                <option value="카카오뱅크">카카오뱅크</option>
+                <option value="국민은행">국민은행</option>
+                <option value="신한은행">신한은행</option>
+                <option value="우리은행">우리은행</option>
+                <option value="하나은행">하나은행</option>
+                <option value="농협은행">농협은행</option>
+                <option value="토스뱅크">토스뱅크</option>
+            </select>
+            <input type="text" id="account-number" placeholder="계좌번호">
+            <input type="text" id="account-holder" placeholder="예금주">
+            <button class="btn-success" onclick="requestWithdraw()">출금 신청</button>
+            
+            <h3 style="margin: 20px 0 15px;">📋 출금 내역</h3>
+            <div class="history-list" id="withdraw-history">
+                <p style="text-align: center; color: #999;">로딩 중...</p>
+            </div>
+        </div>
+        
+        <button class="btn-secondary" onclick="logout()" style="margin-top: 20px;">로그아웃</button>
+    </div>
+</div>
+
+<!-- 리워드 팝업 -->
+<div id="reward-popup" class="hidden">
+    <div class="overlay" onclick="closeRewardPopup()"></div>
+    <div class="popup">
+        <h2>🎉 정답입니다!</h2>
+        <div class="reward-amount">+<span id="reward-amount">100</span>P</div>
+        <p>포인트가 적립되었습니다!</p>
+        <button class="btn-primary" onclick="closeRewardPopup()" style="width: auto; padding: 15px 50px;">
+            확인
+        </button>
+    </div>
+</div>
+
+<!-- 서버 상태 -->
+<div class="server-status">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">연결 중...</span>
+    <span id="queue-info"></span>
+</div>
+
+<script>
+// ==================== 설정 ====================
+// Railway API 서버 URL (배포 후 수정)
+const API_SERVER = 'https://your-app.up.railway.app';
+
+const socket = io(API_SERVER);
+let currentUser = null;
+let currentTaskId = null;
+
+// ==================== 연결 상태 ====================
+socket.on('connect', () => {
+    document.getElementById('status-dot').classList.add('online');
+    document.getElementById('status-dot').classList.remove('offline');
+    document.getElementById('status-text').textContent = '연결됨';
+    
+    // 유저 room 참가
+    if (currentUser) {
+        socket.emit('join', { user_id: currentUser });
+    }
+    
+    updateServerStatus();
+});
+
+socket.on('disconnect', () => {
+    document.getElementById('status-dot').classList.remove('online');
+    document.getElementById('status-dot').classList.add('offline');
+    document.getElementById('status-text').textContent = '연결 끊김';
+});
+
+function updateServerStatus() {
+    fetch(API_SERVER + '/api/status')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('queue-info').textContent = ` | 대기: ${data.queue_size}건`;
+        })
+        .catch(() => {});
+}
+setInterval(updateServerStatus, 5000);
+
+// ==================== 탭 ====================
+function showTab(tabName) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+    
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tabName).classList.remove('hidden');
+    
+    if (tabName === 'rewards') loadRewardsHistory();
+    if (tabName === 'withdraw') loadWithdrawHistory();
+}
+
+// ==================== 로그인 ====================
+function login() {
+    const userId = document.getElementById('user-id').value.trim();
+    const password = document.getElementById('password').value.trim();
+    
+    if (!userId || !password) {
+        alert('아이디와 비밀번호를 입력하세요.');
+        return;
+    }
+    
+    fetch(API_SERVER + '/api/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: userId, password: password})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            currentUser = userId;
+            document.getElementById('display-user').textContent = userId;
+            document.getElementById('total-rewards').textContent = data.rewards.toLocaleString();
+            document.getElementById('total-solved').textContent = data.solved;
+            
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-screen').classList.remove('hidden');
+            
+            localStorage.setItem('captcha_user', userId);
+            
+            // room 참가
+            socket.emit('join', { user_id: userId });
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(err => {
+        alert('서버 연결 실패');
+        console.error(err);
+    });
+}
+
+function logout() {
+    currentUser = null;
+    currentTaskId = null;
+    localStorage.removeItem('captcha_user');
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('main-screen').classList.add('hidden');
+}
+
+// ==================== 작업 ====================
+function requestTask() {
+    if (!currentUser) return alert('로그인이 필요합니다.');
+    
+    showMessage('<span class="loading"></span> 작업을 요청 중...', 'info');
+    document.getElementById('start-area').classList.add('hidden');
+    socket.emit('request_task', {user_id: currentUser});
+}
+
+function submitAnswer() {
+    const answer = document.getElementById('captcha-answer').value.trim();
+    if (!answer) return alert('정답을 입력하세요.');
+    
+    showMessage('<span class="loading"></span> 확인 중...', 'info');
+    socket.emit('submit_answer', {
+        user_id: currentUser,
+        task_id: currentTaskId,
+        answer: answer
+    });
+}
+
+function refreshCaptcha() {
+    showMessage('<span class="loading"></span> 새로고침 중...', 'info');
+    socket.emit('refresh_captcha', {user_id: currentUser, task_id: currentTaskId});
+}
+
+function skipTask() {
+    if (confirm('이 작업을 건너뛰시겠습니까?')) {
+        document.getElementById('captcha-area').classList.add('hidden');
+        document.getElementById('start-area').classList.remove('hidden');
+        document.getElementById('message-area').innerHTML = '';
+        socket.emit('skip_task', {user_id: currentUser, task_id: currentTaskId});
+        currentTaskId = null;
+    }
+}
+
+// ==================== 리워드 ====================
+function loadRewardsHistory() {
+    fetch(API_SERVER + '/api/rewards/history/' + currentUser)
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('rewards-history');
+            if (!data.success || !data.history.length) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">내역이 없습니다.</p>';
+                return;
+            }
+            
+            container.innerHTML = data.history.map(item => `
+                <div class="history-item">
+                    <div>
+                        <div>${item.reason}</div>
+                        <div style="font-size: 12px; color: #999;">${new Date(item.created_at).toLocaleString()}</div>
+                    </div>
+                    <div class="history-amount ${item.amount > 0 ? 'positive' : 'negative'}">
+                        ${item.amount > 0 ? '+' : ''}${item.amount.toLocaleString()}P
+                    </div>
+                </div>
+            `).join('');
+        });
+}
+
+// ==================== 출금 ====================
+function requestWithdraw() {
+    const amount = parseInt(document.getElementById('withdraw-amount').value);
+    const bankName = document.getElementById('bank-name').value;
+    const accountNumber = document.getElementById('account-number').value.trim();
+    const accountHolder = document.getElementById('account-holder').value.trim();
+    
+    if (!amount || amount < 10000) return alert('최소 출금액은 10,000P입니다.');
+    if (!bankName) return alert('은행을 선택하세요.');
+    if (!accountNumber) return alert('계좌번호를 입력하세요.');
+    if (!accountHolder) return alert('예금주를 입력하세요.');
+    
+    fetch(API_SERVER + '/api/withdraw', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            user_id: currentUser,
+            amount: amount,
+            bank_name: bankName,
+            account_number: accountNumber,
+            account_holder: accountHolder
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('출금 신청이 완료되었습니다.');
+            
+            // 잔액 갱신
+            const current = parseInt(document.getElementById('total-rewards').textContent.replace(/,/g, ''));
+            document.getElementById('total-rewards').textContent = (current - amount).toLocaleString();
+            
+            // 폼 초기화
+            document.getElementById('withdraw-amount').value = '';
+            document.getElementById('account-number').value = '';
+            document.getElementById('account-holder').value = '';
+            
+            loadWithdrawHistory();
+        } else {
+            alert(data.message);
+        }
+    });
+}
+
+function loadWithdrawHistory() {
+    fetch(API_SERVER + '/api/withdrawals/' + currentUser)
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('withdraw-history');
+            if (!data.success || !data.withdrawals.length) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">내역이 없습니다.</p>';
+                return;
+            }
+            
+            const statusText = {pending: '처리중', completed: '완료', rejected: '거절'};
+            const statusColor = {pending: '#ffc107', completed: '#28a745', rejected: '#dc3545'};
+            
+            container.innerHTML = data.withdrawals.map(item => `
+                <div class="history-item">
+                    <div>
+                        <div>${item.bank_name} ${item.account_number}</div>
+                        <div style="font-size: 12px; color: #999;">${new Date(item.created_at).toLocaleString()}</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: bold;">${item.amount.toLocaleString()}P</div>
+                        <div style="font-size: 12px; color: ${statusColor[item.status]}">${statusText[item.status]}</div>
+                    </div>
+                </div>
+            `).join('');
+        });
+}
+
+// ==================== UI ====================
+function showMessage(html, type) {
+    document.getElementById('message-area').innerHTML = `<div class="message ${type}">${html}</div>`;
+}
+
+function showRewardPopup(amount) {
+    document.getElementById('reward-amount').textContent = amount;
+    document.getElementById('reward-popup').classList.remove('hidden');
+}
+
+function closeRewardPopup() {
+    document.getElementById('reward-popup').classList.add('hidden');
+    document.getElementById('captcha-answer').value = '';
+    document.getElementById('captcha-area').classList.add('hidden');
+    document.getElementById('start-area').classList.remove('hidden');
+    document.getElementById('message-area').innerHTML = '';
+    currentTaskId = null;
+}
+
+// ==================== Socket 이벤트 ====================
+socket.on('captcha_image', (data) => {
+    currentTaskId = data.task_id;
+    document.getElementById('captcha-image').src = 'data:image/png;base64,' + data.image;
+    document.getElementById('store-name').textContent = data.store_name || '알 수 없음';
+    document.getElementById('captcha-area').classList.remove('hidden');
+    document.getElementById('start-area').classList.add('hidden');
+    document.getElementById('message-area').innerHTML = '';
+    document.getElementById('captcha-answer').value = '';
+    document.getElementById('captcha-answer').focus();
+});
+
+socket.on('captcha_retry', (data) => {
+    document.getElementById('captcha-image').src = 'data:image/png;base64,' + data.image;
+    document.getElementById('captcha-answer').value = '';
+    showMessage(data.message, 'error');
+    document.getElementById('captcha-answer').focus();
+});
+
+socket.on('task_complete', (data) => {
+    const rewards = document.getElementById('total-rewards');
+    rewards.textContent = data.total_rewards ? data.total_rewards.toLocaleString() : 
+        (parseInt(rewards.textContent.replace(/,/g, '')) + data.rewards).toLocaleString();
+    
+    const solved = document.getElementById('total-solved');
+    solved.textContent = parseInt(solved.textContent) + 1;
+    
+    showRewardPopup(data.rewards);
+});
+
+socket.on('task_failed', (data) => {
+    showMessage(data.message, 'error');
+});
+
+socket.on('answer_submitted', (data) => {
+    showMessage(data.message, 'info');
+});
+
+socket.on('no_task', (data) => {
+    showMessage(data.message, 'info');
+    document.getElementById('start-area').classList.remove('hidden');
+});
+
+socket.on('error', (data) => {
+    showMessage(data.message, 'error');
+});
+
+socket.on('new_task_available', () => {
+    // 새 작업 알림
+    updateServerStatus();
+});
+
+// ==================== 초기화 ====================
+window.onload = function() {
+    const savedUser = localStorage.getItem('captcha_user');
+    if (savedUser) {
+        document.getElementById('user-id').value = savedUser;
+    }
+};
+</script>
+</body>
+</html>
