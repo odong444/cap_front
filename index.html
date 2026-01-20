@@ -413,8 +413,8 @@
                     
                     setStatus('waiting', '⏳ 작업 대기 중... (브라우저 준비 중)');
                     
-                    // 폴링 시작 (2초마다)
-                    pollInterval = setInterval(pollSession, 2000);
+                    // 폴링 시작 (1초마다)
+                    pollInterval = setInterval(pollSession, 1000);
                     pollSession(); // 즉시 한 번 호출
                 }
             } catch (e) {
@@ -460,7 +460,7 @@
                                 updateScreenshot(data);
                                 isWaitingResult = false;
                                 disableInput(false);
-                            }, 1500);
+                            }, 800);  // 1.5초 → 0.8초
                         } else {
                             // 맞음 (새 문제로 넘어감)
                             showResultOverlay('correct', '✅ 정답!');
@@ -470,7 +470,7 @@
                                 updateScreenshot(data);
                                 isWaitingResult = false;
                                 disableInput(false);
-                            }, 1500);
+                            }, 800);  // 1.5초 → 0.8초
                         }
                         lastScreenshot = data.screenshot;
                     } else if (!isWaitingResult) {
