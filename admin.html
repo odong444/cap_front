@@ -21,6 +21,7 @@
         .sidebar h2 { color: #fff; padding: 0 20px 20px; font-size: 1.3em; }
         .sidebar a { display: block; padding: 12px 20px; color: #888; text-decoration: none; border-left: 3px solid transparent; }
         .sidebar a:hover, .sidebar a.active { background: #16213e; color: #fff; border-left-color: #e94560; }
+        .sidebar .badge { background: #e94560; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 5px; }
         
         .main { flex: 1; padding: 25px; overflow-y: auto; }
         .main h2 { color: #fff; margin-bottom: 25px; }
@@ -67,6 +68,8 @@
         .status-pending { background: #f59e0b; color: #000; }
         .status-collecting { background: #3b82f6; color: #fff; }
         .status-completed { background: #10b981; color: #fff; }
+        .status-approved { background: #10b981; color: #fff; }
+        .status-waiting { background: #f59e0b; color: #000; }
         
         .progress-bar { height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 5px; }
         .progress-bar .fill { height: 100%; background: #10b981; transition: width 0.3s; }
@@ -74,6 +77,14 @@
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab { padding: 10px 20px; background: #16213e; border-radius: 8px; cursor: pointer; }
         .tab.active { background: #e94560; color: #fff; }
+        
+        .user-detail { background: #16213e; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .user-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .user-detail-item { padding: 8px 0; }
+        .user-detail-item label { color: #888; font-size: 12px; display: block; }
+        .user-detail-item span { color: #fff; font-size: 14px; }
+        
+        .user-actions { display: flex; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; }
     </style>
 </head>
 <body>
@@ -91,7 +102,7 @@
             <a href="#" class="active" onclick="showPage('dashboard')">📊 대시보드</a>
             <a href="#" onclick="showPage('keywords')">🔑 키워드</a>
             <a href="#" onclick="showPage('results')">📋 결과</a>
-            <a href="#" onclick="showPage('users')">👥 유저</a>
+            <a href="#" onclick="showPage('users')">👥 유저 <span id="pending-users-badge" class="badge hidden">0</span></a>
             <a href="#" onclick="showPage('withdrawals')">🏧 출금</a>
         </div>
         
@@ -104,6 +115,7 @@
                     <div class="stat-card"><div class="value" id="stat-today">0</div><div class="label">오늘 수집</div></div>
                     <div class="stat-card"><div class="value" id="stat-pending">0</div><div class="label">대기 UID</div></div>
                     <div class="stat-card"><div class="value" id="stat-users">0</div><div class="label">유저 수</div></div>
+                    <div class="stat-card"><div class="value" id="stat-pending-users">0</div><div class="label">승인 대기</div></div>
                 </div>
             </div>
             
@@ -219,11 +231,45 @@
             <!-- 유저 -->
             <div id="page-users" class="hidden">
                 <h2>👥 유저 관리</h2>
-                <div class="card">
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="showUserTab('pending')">승인 대기 <span id="pending-tab-count"></span></div>
+                    <div class="tab" onclick="showUserTab('approved')">승인 완료</div>
+                    <div class="tab" onclick="showUserTab('all')">전체</div>
+                </div>
+                
+                <!-- 승인 대기 유저 목록 -->
+                <div id="users-pending" class="card">
+                    <div class="card-header">
+                        <h3>승인 대기 회원</h3>
+                    </div>
+                    <div class="card-body" id="pending-users-list">
+                        <!-- 동적으로 채워짐 -->
+                    </div>
+                </div>
+                
+                <!-- 승인된 유저 목록 -->
+                <div id="users-approved" class="card hidden">
+                    <div class="card-header">
+                        <h3>승인 완료 회원</h3>
+                    </div>
                     <div class="card-body">
                         <table>
-                            <thead><tr><th>아이디</th><th>포인트</th><th>해결수</th><th>가입일</th><th>액션</th></tr></thead>
-                            <tbody id="users-table"></tbody>
+                            <thead><tr><th>아이디</th><th>이름</th><th>연락처</th><th>포인트</th><th>해결수</th><th>가입일</th><th>액션</th></tr></thead>
+                            <tbody id="approved-users-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- 전체 유저 목록 -->
+                <div id="users-all" class="card hidden">
+                    <div class="card-header">
+                        <h3>전체 회원</h3>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>아이디</th><th>이름</th><th>연락처</th><th>상태</th><th>포인트</th><th>해결수</th><th>가입일</th><th>액션</th></tr></thead>
+                            <tbody id="all-users-table"></tbody>
                         </table>
                     </div>
                 </div>
@@ -255,6 +301,7 @@
     
     <script>
         const API = 'https://capapi-production.up.railway.app';
+        let currentUserTab = 'pending';
         
         async function adminLogin() {
             const pw = document.getElementById('admin-password').value;
@@ -269,6 +316,7 @@
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('admin-container').classList.add('active');
                 loadDashboard();
+                checkPendingUsers();
             } else {
                 alert('비밀번호 오류');
             }
@@ -288,11 +336,37 @@
         }
         
         function showKeywordTab(tab) {
-            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#page-keywords .tabs .tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
             
             document.getElementById('keyword-single').classList.toggle('hidden', tab !== 'single');
             document.getElementById('keyword-bulk').classList.toggle('hidden', tab !== 'bulk');
+        }
+        
+        function showUserTab(tab) {
+            currentUserTab = tab;
+            document.querySelectorAll('#page-users .tabs .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('users-pending').classList.toggle('hidden', tab !== 'pending');
+            document.getElementById('users-approved').classList.toggle('hidden', tab !== 'approved');
+            document.getElementById('users-all').classList.toggle('hidden', tab !== 'all');
+            
+            loadUsers();
+        }
+        
+        async function checkPendingUsers() {
+            const resp = await fetch(`${API}/api/admin/users?filter=pending`);
+            const data = await resp.json();
+            const count = data.users ? data.users.length : 0;
+            
+            const badge = document.getElementById('pending-users-badge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
         }
         
         async function loadDashboard() {
@@ -303,6 +377,7 @@
                 document.getElementById('stat-today').textContent = data.stats.today_results;
                 document.getElementById('stat-pending').textContent = data.stats.pending_uids;
                 document.getElementById('stat-users').textContent = data.stats.total_users;
+                document.getElementById('stat-pending-users').textContent = data.stats.pending_users || 0;
             }
         }
         
@@ -466,19 +541,163 @@
         }
         
         async function loadUsers() {
-            const resp = await fetch(`${API}/api/admin/users`);
+            let filter = '';
+            if (currentUserTab === 'pending') filter = 'pending';
+            else if (currentUserTab === 'approved') filter = 'approved';
+            
+            const resp = await fetch(`${API}/api/admin/users?filter=${filter}`);
             const data = await resp.json();
             
-            const tbody = document.getElementById('users-table');
-            tbody.innerHTML = data.users.map(u => `
+            if (currentUserTab === 'pending') {
+                renderPendingUsers(data.users || []);
+                document.getElementById('pending-tab-count').textContent = `(${data.users ? data.users.length : 0})`;
+            } else if (currentUserTab === 'approved') {
+                renderApprovedUsers(data.users || []);
+            } else {
+                renderAllUsers(data.users || []);
+            }
+            
+            checkPendingUsers();
+        }
+        
+        function renderPendingUsers(users) {
+            const container = document.getElementById('pending-users-list');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">승인 대기 중인 회원이 없습니다.</p>';
+                return;
+            }
+            
+            container.innerHTML = users.map(u => `
+                <div class="user-detail">
+                    <div class="user-detail-grid">
+                        <div class="user-detail-item">
+                            <label>아이디</label>
+                            <span><strong>${u.user_id}</strong></span>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>이름</label>
+                            <span>${u.name || '-'}</span>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>연락처</label>
+                            <span>${u.phone || '-'}</span>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>이메일</label>
+                            <span>${u.email || '-'}</span>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>은행</label>
+                            <span>${u.bank_name || '-'}</span>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>계좌번호</label>
+                            <span>${u.bank_account || '-'}</span>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>예금주</label>
+                            <span>${u.account_holder || '-'}</span>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>가입일</label>
+                            <span>${formatDate(u.created_at)}</span>
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn btn-success" onclick="approveUser('${u.user_id}')">✅ 승인</button>
+                        <button class="btn btn-danger" onclick="rejectUser('${u.user_id}')">❌ 거절 (삭제)</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderApprovedUsers(users) {
+            const tbody = document.getElementById('approved-users-table');
+            tbody.innerHTML = users.map(u => `
                 <tr>
                     <td>${u.user_id}</td>
-                    <td>${u.rewards.toLocaleString()}</td>
-                    <td>${u.solved_count}</td>
+                    <td>${u.name || '-'}</td>
+                    <td>${u.phone || '-'}</td>
+                    <td>${(u.rewards || 0).toLocaleString()}</td>
+                    <td>${u.solved_count || 0}</td>
                     <td>${formatDate(u.created_at)}</td>
-                    <td><button class="btn btn-sm btn-secondary" onclick="adjustRewards('${u.user_id}')">포인트 조정</button></td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" onclick="adjustRewards('${u.user_id}')">포인트 조정</button>
+                        <button class="btn btn-sm btn-warning" onclick="suspendUser('${u.user_id}')">정지</button>
+                    </td>
                 </tr>
             `).join('');
+        }
+        
+        function renderAllUsers(users) {
+            const tbody = document.getElementById('all-users-table');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.user_id}</td>
+                    <td>${u.name || '-'}</td>
+                    <td>${u.phone || '-'}</td>
+                    <td><span class="status-badge ${u.is_approved ? 'status-approved' : 'status-waiting'}">${u.is_approved ? '승인' : '대기'}</span></td>
+                    <td>${(u.rewards || 0).toLocaleString()}</td>
+                    <td>${u.solved_count || 0}</td>
+                    <td>${formatDate(u.created_at)}</td>
+                    <td>
+                        ${!u.is_approved ? `<button class="btn btn-sm btn-success" onclick="approveUser('${u.user_id}')">승인</button>` : ''}
+                        <button class="btn btn-sm btn-secondary" onclick="adjustRewards('${u.user_id}')">포인트</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        async function approveUser(userId) {
+            if (!confirm(`'${userId}' 회원을 승인하시겠습니까?`)) return;
+            
+            const resp = await fetch(`${API}/api/admin/users/${userId}/approve`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await resp.json();
+            
+            if (data.success) {
+                toast('회원 승인 완료');
+                loadUsers();
+            } else {
+                alert(data.message || '승인 실패');
+            }
+        }
+        
+        async function rejectUser(userId) {
+            if (!confirm(`'${userId}' 회원 가입을 거절하고 삭제하시겠습니까?`)) return;
+            
+            const resp = await fetch(`${API}/api/admin/users/${userId}/reject`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await resp.json();
+            
+            if (data.success) {
+                toast('회원 거절 (삭제) 완료');
+                loadUsers();
+            } else {
+                alert(data.message || '거절 실패');
+            }
+        }
+        
+        async function suspendUser(userId) {
+            if (!confirm(`'${userId}' 회원을 정지하시겠습니까?`)) return;
+            
+            const resp = await fetch(`${API}/api/admin/users/${userId}/suspend`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await resp.json();
+            
+            if (data.success) {
+                toast('회원 정지 완료');
+                loadUsers();
+            } else {
+                alert(data.message || '정지 실패');
+            }
         }
         
         async function adjustRewards(userId) {
@@ -542,11 +761,12 @@
             setTimeout(() => t.classList.remove('show'), 2000);
         }
         
-        // 자동 새로고침 (5초마다 키워드 페이지)
+        // 자동 새로고침 (5초마다)
         setInterval(() => {
             if (!document.getElementById('page-keywords').classList.contains('hidden')) {
                 loadKeywords();
             }
+            checkPendingUsers();
         }, 5000);
     </script>
 </body>
