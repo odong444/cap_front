@@ -71,6 +71,10 @@
             background: #e74c3c;
             color: white;
         }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
         
         /* 대시보드 */
         .dashboard { display: none; }
@@ -154,25 +158,11 @@
             border-radius: 10px;
             margin-bottom: 15px;
             text-align: center;
+            display: none;
         }
         .message.success { background: #d4edda; color: #155724; }
         .message.error { background: #f8d7da; color: #721c24; }
         .message.info { background: #e7f1ff; color: #004085; }
-        
-        /* 히스토리 */
-        .history {
-            margin-top: 20px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        .history-item .amount { color: #27ae60; font-weight: bold; }
         
         .hidden { display: none !important; }
         
@@ -181,12 +171,21 @@
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
+            border: 3px solid rgba(102,126,234,.3);
             border-radius: 50%;
-            border-top-color: #fff;
+            border-top-color: #667eea;
             animation: spin 1s ease-in-out infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* TTS 버튼 */
+        .tts-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
@@ -197,6 +196,8 @@
         </div>
         
         <div class="content">
+            <div id="message" class="message"></div>
+            
             <!-- 로그인 -->
             <div id="login-section" class="login-form">
                 <input type="text" id="user-id" placeholder="아이디">
@@ -226,7 +227,7 @@
                 
                 <!-- 작업 영역 -->
                 <div id="work-area" class="work-area">
-                    <div id="status-text" class="status waiting">대기 중...</div>
+                    <div id="status-text" class="status waiting">⏳ 작업 대기 중... (브라우저 준비 중)</div>
                     
                     <div id="captcha-section" class="hidden">
                         <div class="screenshot-container">
@@ -234,31 +235,26 @@
                         </div>
                         
                         <div class="answer-form">
-                            <input type="text" id="answer-input" placeholder="문자 입력" 
-                                   onkeypress="if(event.keyCode==13) submitAnswer()">
-                            <button class="btn btn-primary" onclick="submitAnswer()">확인</button>
+                            <input type="text" id="answer-input" placeholder="정답을 입력하세요." 
+                                   onkeypress="if(event.key==='Enter')submitAnswer()">
+                            <button class="tts-btn" onclick="refreshScreenshot()" title="새로고침">🔄</button>
+                            <button class="tts-btn" onclick="speakText()" title="음성으로 듣기">🔊</button>
                         </div>
+                        <button class="btn btn-primary" style="margin-top:10px" onclick="submitAnswer()">확인</button>
                     </div>
                 </div>
                 
-                <div id="message" class="message hidden"></div>
-                
-                <!-- 히스토리 -->
-                <div class="history" id="history"></div>
-                
-                <button class="btn" style="margin-top: 20px; background: #95a5a6; color: white;" onclick="logout()">
-                    로그아웃
-                </button>
+                <button class="btn btn-secondary" style="margin-top:20px" onclick="logout()">로그아웃</button>
             </div>
         </div>
     </div>
-    
+
     <script>
         const API_SERVER = 'https://capapi-production.up.railway.app';
         
         let currentUser = null;
-        let sessionId = null;
         let pollInterval = null;
+        let isWorking = false;
         
         // 로그인
         async function login() {
@@ -279,7 +275,7 @@
                 const data = await resp.json();
                 
                 if (data.success) {
-                    currentUser = data;
+                    currentUser = {user_id: userId, ...data};
                     localStorage.setItem('user', JSON.stringify(currentUser));
                     showDashboard();
                 } else {
@@ -295,11 +291,12 @@
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('dashboard').style.display = 'block';
             updateStats();
-            loadHistory();
         }
         
         // 통계 업데이트
         async function updateStats() {
+            if (!currentUser) return;
+            
             try {
                 const resp = await fetch(`${API_SERVER}/api/user/${currentUser.user_id}`);
                 const data = await resp.json();
@@ -311,26 +308,10 @@
             } catch (e) {}
         }
         
-        // 히스토리 로드
-        async function loadHistory() {
-            try {
-                const resp = await fetch(`${API_SERVER}/api/rewards/history/${currentUser.user_id}`);
-                const data = await resp.json();
-                
-                if (data.success) {
-                    const html = data.history.slice(0, 10).map(h => `
-                        <div class="history-item">
-                            <span>${h.reason}</span>
-                            <span class="amount">${h.amount > 0 ? '+' : ''}${h.amount}P</span>
-                        </div>
-                    `).join('');
-                    document.getElementById('history').innerHTML = html;
-                }
-            } catch (e) {}
-        }
-        
         // 작업 시작
         async function startWork() {
+            if (!currentUser) return;
+            
             try {
                 const resp = await fetch(`${API_SERVER}/api/session/start`, {
                     method: 'POST',
@@ -340,7 +321,7 @@
                 const data = await resp.json();
                 
                 if (data.success) {
-                    sessionId = data.session_id;
+                    isWorking = true;
                     
                     document.getElementById('start-btn').classList.add('hidden');
                     document.getElementById('stop-btn').classList.remove('hidden');
@@ -348,57 +329,58 @@
                     
                     setStatus('waiting', '⏳ 작업 대기 중... (브라우저 준비 중)');
                     
-                    // 폴링 시작
+                    // 폴링 시작 (2초마다)
                     pollInterval = setInterval(pollSession, 2000);
+                    pollSession(); // 즉시 한 번 호출
                 }
             } catch (e) {
                 showMessage('작업 시작 실패', 'error');
             }
         }
         
-        // 세션 상태 폴링
+        // 세션 상태 폴링 - 수정된 API 호출
         async function pollSession() {
-            if (!sessionId) return;
+            if (!currentUser || !isWorking) return;
             
             try {
-                const resp = await fetch(`${API_SERVER}/api/session/${sessionId}/status`);
+                // 올바른 API 경로: /api/session/poll/<user_id>
+                const resp = await fetch(`${API_SERVER}/api/session/poll/${currentUser.user_id}`);
                 const data = await resp.json();
                 
                 if (!data.success) {
-                    if (data.timeout) {
-                        showMessage('5분 동안 응답이 없어 세션이 종료되었습니다.', 'error');
-                        stopWork();
-                    }
+                    setStatus('waiting', '⏳ 세션 준비 중...');
                     return;
                 }
                 
-                switch (data.status) {
-                    case 'waiting':
-                        setStatus('waiting', '⏳ 다음 작업 대기 중...');
-                        document.getElementById('captcha-section').classList.add('hidden');
-                        break;
-                    
-                    case 'working':
-                        setStatus('working', '🔄 페이지 로딩 중...');
-                        break;
-                    
-                    case 'captcha':
-                        if (data.screenshot) {
-                            setStatus('working', '📝 캡챠를 입력하세요!');
-                            document.getElementById('screenshot').src = 'data:image/png;base64,' + data.screenshot;
-                            document.getElementById('captcha-section').classList.remove('hidden');
-                            document.getElementById('answer-input').focus();
-                        }
-                        break;
-                    
-                    case 'answered':
-                        setStatus('working', '⏳ 답변 확인 중...');
-                        break;
+                // 메시지가 있으면 표시
+                if (data.message) {
+                    if (data.message.includes('타임아웃') || data.message.includes('종료')) {
+                        showMessage(data.message, 'error');
+                        stopWork();
+                        return;
+                    }
+                    if (data.message.includes('틀렸')) {
+                        showMessage(data.message, 'error');
+                    }
                 }
-            } catch (e) {}
+                
+                // 스크린샷이 있으면 캡챠 표시
+                if (data.screenshot) {
+                    setStatus('working', '📝 캡챠를 입력하세요!');
+                    document.getElementById('screenshot').src = 'data:image/png;base64,' + data.screenshot;
+                    document.getElementById('captcha-section').classList.remove('hidden');
+                    document.getElementById('answer-input').focus();
+                } else {
+                    setStatus('waiting', '⏳ 다음 작업 대기 중...');
+                    document.getElementById('captcha-section').classList.add('hidden');
+                }
+                
+            } catch (e) {
+                console.error('Poll error:', e);
+            }
         }
         
-        // 답변 제출
+        // 답변 제출 - 수정된 API 호출
         async function submitAnswer() {
             const answer = document.getElementById('answer-input').value.trim();
             
@@ -408,10 +390,14 @@
             }
             
             try {
-                const resp = await fetch(`${API_SERVER}/api/session/${sessionId}/answer`, {
+                // 올바른 API 경로: /api/session/submit-answer
+                const resp = await fetch(`${API_SERVER}/api/session/submit-answer`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({answer})
+                    body: JSON.stringify({
+                        user_id: currentUser.user_id,
+                        answer: answer
+                    })
                 });
                 const data = await resp.json();
                 
@@ -419,15 +405,24 @@
                     document.getElementById('answer-input').value = '';
                     setStatus('working', '⏳ 답변 확인 중...');
                     
-                    // 잠시 후 업데이트
-                    setTimeout(() => {
-                        updateStats();
-                        loadHistory();
-                    }, 3000);
+                    // 통계 업데이트
+                    setTimeout(updateStats, 3000);
+                } else {
+                    showMessage('답변 제출 실패', 'error');
                 }
             } catch (e) {
                 showMessage('답변 제출 실패', 'error');
             }
+        }
+        
+        // 스크린샷 새로고침
+        function refreshScreenshot() {
+            pollSession();
+        }
+        
+        // TTS (간단한 알림)
+        function speakText() {
+            showMessage('음성 기능은 준비 중입니다', 'info');
         }
         
         // 작업 종료
@@ -437,13 +432,17 @@
                 pollInterval = null;
             }
             
-            if (sessionId) {
+            isWorking = false;
+            
+            if (currentUser) {
                 try {
-                    await fetch(`${API_SERVER}/api/session/${sessionId}/end`, {method: 'POST'});
+                    await fetch(`${API_SERVER}/api/session/end`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({user_id: currentUser.user_id})
+                    });
                 } catch (e) {}
             }
-            
-            sessionId = null;
             
             document.getElementById('start-btn').classList.remove('hidden');
             document.getElementById('stop-btn').classList.add('hidden');
@@ -465,9 +464,9 @@
             const el = document.getElementById('message');
             el.className = 'message ' + type;
             el.textContent = text;
-            el.classList.remove('hidden');
+            el.style.display = 'block';
             
-            setTimeout(() => el.classList.add('hidden'), 3000);
+            setTimeout(() => el.style.display = 'none', 3000);
         }
         
         // 로그아웃
