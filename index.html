@@ -447,8 +447,9 @@
                 
                 // 스크린샷이 있으면 처리
                 if (data.screenshot) {
-                    // 새로운 스크린샷인지 확인
-                    const isNewScreenshot = data.screenshot !== lastScreenshot;
+                    // 스크린샷 앞 100자로만 비교 (성능 개선)
+                    const screenshotKey = data.screenshot.substring(0, 100);
+                    const isNewScreenshot = screenshotKey !== lastScreenshot;
                     
                     if (isWaitingResult && isNewScreenshot) {
                         // 결과 대기 중이었고 새 스크린샷이 왔다 = 결과 처리
@@ -460,7 +461,7 @@
                                 updateScreenshot(data);
                                 isWaitingResult = false;
                                 disableInput(false);
-                            }, 500);  // 0.5초만 표시
+                            }, 500);
                         } else {
                             // 맞음 (새 문제로 넘어감)
                             showResultOverlay('correct', '✅ 정답!');
@@ -470,13 +471,13 @@
                                 updateScreenshot(data);
                                 isWaitingResult = false;
                                 disableInput(false);
-                            }, 500);  // 0.5초만 표시
+                            }, 500);
                         }
-                        lastScreenshot = data.screenshot;
-                    } else if (!isWaitingResult) {
-                        // 일반 상태 - 스크린샷 표시
+                        lastScreenshot = screenshotKey;
+                    } else if (!isWaitingResult && isNewScreenshot) {
+                        // 일반 상태 - 새 스크린샷이면 업데이트
                         updateScreenshot(data);
-                        lastScreenshot = data.screenshot;
+                        lastScreenshot = screenshotKey;
                     }
                 } else {
                     setStatus('waiting', '⏳ 다음 작업 대기 중...');
@@ -495,9 +496,12 @@
             document.getElementById('captcha-section').classList.remove('hidden');
             document.getElementById('answer-input').focus();
             
-            // 질문 표시
-            if (data.message && !data.message.includes('틀렸') && !data.message.includes('타임아웃')) {
-                document.getElementById('question-box').textContent = data.message;
+            // 질문 표시 - 항상 업데이트 (틀렸습니다 제거)
+            if (data.message) {
+                let question = data.message.replace(/❌\s*틀렸습니다!\s*/g, '').trim();
+                if (question && question.length > 5) {
+                    document.getElementById('question-box').textContent = question;
+                }
             }
         }
         
