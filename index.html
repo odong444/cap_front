@@ -279,6 +279,7 @@
         let currentUser = null;
         let pollInterval = null;
         let isWorking = false;
+        let lastMessageShown = '';  // 중복 메시지 방지
         
         // 로그인
         async function login() {
@@ -346,6 +347,7 @@
                 
                 if (data.success) {
                     isWorking = true;
+                    lastMessageShown = '';  // 메시지 리셋
                     
                     document.getElementById('start-btn').classList.add('hidden');
                     document.getElementById('stop-btn').classList.remove('hidden');
@@ -376,7 +378,7 @@
                     return;
                 }
                 
-                // 메시지가 있으면 표시
+                // 메시지가 있으면 표시 (중복 방지)
                 if (data.message) {
                     if (data.message.includes('타임아웃') || data.message.includes('종료')) {
                         showMessage(data.message, 'error');
@@ -384,10 +386,13 @@
                         return;
                     }
                     
-                    // 틀린 경우 - 에러 메시지 표시 + 질문 추출
+                    // 틀린 경우 - 에러 메시지 표시 (한 번만)
                     if (data.message.includes('틀렸')) {
-                        showMessage('❌ 틀렸습니다! 다시 시도해주세요.', 'error');
-                        // 메시지에서 질문 추출 (❌ 틀렸습니다! 뒤의 텍스트)
+                        if (lastMessageShown !== data.message) {
+                            showMessage('❌ 틀렸습니다! 다시 시도해주세요.', 'error');
+                            lastMessageShown = data.message;
+                        }
+                        // 메시지에서 질문 추출
                         const questionPart = data.message.replace(/❌\s*틀렸습니다!\s*/g, '').trim();
                         if (questionPart && questionPart.length > 5) {
                             document.getElementById('question-box').textContent = questionPart;
@@ -395,6 +400,7 @@
                     } else if (data.message.length > 5) {
                         // 일반 질문
                         document.getElementById('question-box').textContent = data.message;
+                        lastMessageShown = '';  // 새 질문이면 리셋
                     }
                 }
                 
@@ -443,6 +449,7 @@
                 if (data.success) {
                     document.getElementById('answer-input').value = '';
                     setStatus('working', '⏳ 답변 확인 중...');
+                    lastMessageShown = '';  // 다음 에러 표시를 위해 리셋
                     
                     // 통계 업데이트
                     setTimeout(updateStats, 3000);
