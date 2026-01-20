@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>캡챠 풀이 - 관리자</title>
+    <title>캡챠 관리자</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f6fa;
             min-height: 100vh;
         }
         
@@ -18,76 +18,70 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea, #764ba2);
         }
         .login-box {
             background: white;
             padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 350px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
         }
-        .login-box h1 { text-align: center; margin-bottom: 30px; }
+        .login-box h2 { text-align: center; margin-bottom: 30px; }
         .login-box input {
             width: 100%;
             padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             margin-bottom: 15px;
+            font-size: 16px;
         }
         .login-box button {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #667eea;
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 16px;
             cursor: pointer;
         }
         
         /* 레이아웃 */
-        .admin-container { display: flex; min-height: 100vh; }
-        
-        /* 사이드바 */
+        .admin-container { display: none; }
         .sidebar {
-            width: 250px;
-            background: #1a1a2e;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px;
+            height: 100vh;
+            background: #2c3e50;
             color: white;
             padding: 20px 0;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
         }
-        .sidebar-header {
+        .sidebar h2 {
             padding: 0 20px 20px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #34495e;
             margin-bottom: 20px;
         }
-        .sidebar-header h2 { font-size: 18px; }
         .sidebar-menu a {
             display: block;
             padding: 15px 20px;
-            color: #aaa;
+            color: #bdc3c7;
             text-decoration: none;
             transition: all 0.3s;
         }
         .sidebar-menu a:hover, .sidebar-menu a.active {
-            background: #16213e;
+            background: #34495e;
             color: white;
-            border-left: 3px solid #667eea;
         }
-        .sidebar-menu a span { margin-right: 10px; }
         
-        /* 메인 */
         .main-content {
-            flex: 1;
-            margin-left: 250px;
+            margin-left: 220px;
             padding: 30px;
         }
         
-        /* 대시보드 카드 */
+        /* 카드 */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -97,22 +91,23 @@
         .stat-card {
             background: white;
             padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        .stat-card h3 { color: #666; font-size: 14px; margin-bottom: 10px; }
-        .stat-card .value { font-size: 32px; font-weight: bold; color: #333; }
-        .stat-card .sub { font-size: 12px; color: #999; margin-top: 5px; }
-        .stat-card.primary { border-left: 4px solid #667eea; }
-        .stat-card.success { border-left: 4px solid #28a745; }
-        .stat-card.warning { border-left: 4px solid #ffc107; }
-        .stat-card.danger { border-left: 4px solid #dc3545; }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-card .label {
+            color: #666;
+            margin-top: 5px;
+        }
         
-        /* 테이블 */
         .card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             margin-bottom: 20px;
         }
         .card-header {
@@ -122,20 +117,19 @@
             justify-content: space-between;
             align-items: center;
         }
-        .card-header h3 { font-size: 18px; }
         .card-body { padding: 20px; }
         
+        /* 테이블 */
         table {
             width: 100%;
             border-collapse: collapse;
         }
         th, td {
-            padding: 12px 15px;
+            padding: 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
-        th { background: #f8f9fa; font-weight: 600; color: #666; }
-        tr:hover { background: #f8f9fa; }
+        th { background: #f8f9fa; font-weight: 600; }
         
         /* 버튼 */
         .btn {
@@ -144,159 +138,141 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
-            transition: all 0.3s;
         }
-        .btn-sm { padding: 5px 10px; font-size: 12px; }
         .btn-primary { background: #667eea; color: white; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-secondary { background: #6c757d; color: white; }
-        .btn:hover { opacity: 0.8; transform: translateY(-1px); }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
         
-        /* 입력 */
-        .form-control {
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
+        /* 폼 */
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
         }
-        .form-control:focus { outline: none; border-color: #667eea; }
+        .form-row input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
         
-        /* 필터 */
         .filters {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
         .filters select, .filters input {
-            padding: 10px 15px;
+            padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 8px;
+            border-radius: 6px;
         }
         
-        /* 배지 */
+        .hidden { display: none !important; }
+        
         .badge {
-            padding: 4px 10px;
-            border-radius: 20px;
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: bold;
         }
         .badge-success { background: #d4edda; color: #155724; }
         .badge-warning { background: #fff3cd; color: #856404; }
         .badge-danger { background: #f8d7da; color: #721c24; }
-        .badge-info { background: #cce5ff; color: #004085; }
-        .badge-secondary { background: #e9ecef; color: #495057; }
-        
-        /* 체크박스 */
-        .checkbox-cell { width: 40px; }
-        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-        
-        /* 메모 입력 */
-        .memo-input {
-            width: 150px;
-            padding: 5px 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 13px;
-        }
-        .memo-input:focus { border-color: #667eea; outline: none; }
-        
-        /* 페이지네이션 */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-            margin-top: 20px;
-        }
-        .pagination button {
-            padding: 8px 15px;
-            border: 1px solid #ddd;
-            background: white;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        .pagination button.active { background: #667eea; color: white; border-color: #667eea; }
-        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        /* 모달 */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            min-width: 400px;
-            max-width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal h3 { margin-bottom: 20px; }
-        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-        
-        .hidden { display: none !important; }
-        
-        /* 토스트 */
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            background: #333;
-            color: white;
-            border-radius: 10px;
-            z-index: 2000;
-            animation: slideIn 0.3s ease;
-        }
-        .toast.success { background: #28a745; }
-        .toast.error { background: #dc3545; }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
     </style>
 </head>
 <body>
-    <!-- 로그인 화면 -->
-    <div id="login-screen" class="login-container">
+    <!-- 로그인 -->
+    <div id="login-container" class="login-container">
         <div class="login-box">
-            <h1>🔐 관리자 로그인</h1>
-            <input type="password" id="admin-password" placeholder="관리자 비밀번호" 
+            <h2>🔐 관리자 로그인</h2>
+            <input type="password" id="admin-password" placeholder="비밀번호" 
                    onkeypress="if(event.keyCode==13) adminLogin()">
             <button onclick="adminLogin()">로그인</button>
         </div>
     </div>
     
-    <!-- 관리자 화면 -->
-    <div id="admin-screen" class="admin-container hidden">
-        <!-- 사이드바 -->
+    <!-- 관리자 페이지 -->
+    <div id="admin-container" class="admin-container">
         <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>🎯 캡챠 관리자</h2>
-            </div>
+            <h2>🛠 관리자</h2>
             <div class="sidebar-menu">
-                <a href="#" class="active" onclick="showPage('dashboard')"><span>📊</span> 대시보드</a>
-                <a href="#" onclick="showPage('results')"><span>📋</span> 수집 결과</a>
-                <a href="#" onclick="showPage('users')"><span>👥</span> 유저 관리</a>
-                <a href="#" onclick="showPage('tasks')"><span>📝</span> 작업 관리</a>
-                <a href="#" onclick="showPage('withdrawals')"><span>🏧</span> 출금 관리</a>
+                <a href="#" class="active" onclick="showPage('dashboard')">📊 대시보드</a>
+                <a href="#" onclick="showPage('keywords')">🔑 키워드</a>
+                <a href="#" onclick="showPage('results')">📋 수집 결과</a>
+                <a href="#" onclick="showPage('users')">👥 유저</a>
+                <a href="#" onclick="showPage('withdrawals')">💰 출금</a>
             </div>
         </div>
         
-        <!-- 메인 컨텐츠 -->
         <div class="main-content">
             <!-- 대시보드 -->
             <div id="page-dashboard">
                 <h2 style="margin-bottom: 20px;">📊 대시보드</h2>
-                <div class="stats-grid" id="stats-grid"></div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="value" id="stat-results">0</div>
+                        <div class="label">총 수집 결과</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="stat-unused">0</div>
+                        <div class="label">미사용 결과</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="stat-uids">0</div>
+                        <div class="label">대기 UID</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="stat-sessions">0</div>
+                        <div class="label">활성 세션</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="stat-users">0</div>
+                        <div class="label">총 유저</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="stat-today">0</div>
+                        <div class="label">오늘 수집</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 키워드 관리 -->
+            <div id="page-keywords" class="hidden">
+                <h2 style="margin-bottom: 20px;">🔑 키워드 관리</h2>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>새 키워드 추가</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-row">
+                            <input type="text" id="new-keyword" placeholder="키워드">
+                            <input type="number" id="new-priority" placeholder="우선순위" value="0" style="max-width: 120px;">
+                            <button class="btn btn-primary" onclick="addKeyword()">추가</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header"><h3>키워드 목록</h3></div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>키워드</th>
+                                    <th>우선순위</th>
+                                    <th>활성화</th>
+                                    <th>등록일</th>
+                                    <th>액션</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keywords-table"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             
             <!-- 수집 결과 -->
@@ -304,44 +280,33 @@
                 <h2 style="margin-bottom: 20px;">📋 수집 결과</h2>
                 
                 <div class="filters">
-                    <select id="results-filter-used" onchange="loadResults()">
+                    <select id="filter-used" onchange="loadResults()">
                         <option value="">전체</option>
                         <option value="false">미사용</option>
                         <option value="true">사용완료</option>
                     </select>
-                    <input type="text" id="results-search" placeholder="스토어명/사업자번호 검색" 
-                           onkeypress="if(event.keyCode==13) loadResults()">
+                    <input type="text" id="filter-search" placeholder="스토어명/사업자번호">
                     <button class="btn btn-primary" onclick="loadResults()">검색</button>
-                    <button class="btn btn-secondary" onclick="exportResults()">CSV 내보내기</button>
+                    <button class="btn btn-success" onclick="exportResults()">CSV 내보내기</button>
                 </div>
                 
                 <div class="card">
-                    <div class="card-header">
-                        <h3>수집된 판매자 정보</h3>
-                        <div>
-                            <button class="btn btn-sm btn-success" onclick="bulkUpdateUsed(true)">선택 사용완료</button>
-                            <button class="btn btn-sm btn-secondary" onclick="bulkUpdateUsed(false)">선택 미사용</button>
-                        </div>
-                    </div>
                     <div class="card-body">
                         <table>
                             <thead>
                                 <tr>
-                                    <th class="checkbox-cell"><input type="checkbox" onchange="toggleAllResults(this)"></th>
-                                    <th>스토어명</th>
-                                    <th>상호명</th>
+                                    <th>스토어</th>
                                     <th>사업자번호</th>
                                     <th>대표자</th>
                                     <th>연락처</th>
                                     <th>이메일</th>
-                                    <th>사용</th>
-                                    <th>메모</th>
+                                    <th>해결자</th>
+                                    <th>상태</th>
                                     <th>수집일</th>
                                 </tr>
                             </thead>
                             <tbody id="results-table"></tbody>
                         </table>
-                        <div class="pagination" id="results-pagination"></div>
                     </div>
                 </div>
             </div>
@@ -350,77 +315,27 @@
             <div id="page-users" class="hidden">
                 <h2 style="margin-bottom: 20px;">👥 유저 관리</h2>
                 
-                <div class="filters">
-                    <input type="text" id="users-search" placeholder="유저 검색" 
-                           onkeypress="if(event.keyCode==13) loadUsers()">
-                    <button class="btn btn-primary" onclick="loadUsers()">검색</button>
-                </div>
-                
                 <div class="card">
                     <div class="card-body">
                         <table>
                             <thead>
                                 <tr>
                                     <th>아이디</th>
-                                    <th>보유 포인트</th>
+                                    <th>포인트</th>
                                     <th>해결 수</th>
                                     <th>가입일</th>
-                                    <th>최근 로그인</th>
                                     <th>액션</th>
                                 </tr>
                             </thead>
                             <tbody id="users-table"></tbody>
                         </table>
-                        <div class="pagination" id="users-pagination"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 작업 관리 -->
-            <div id="page-tasks" class="hidden">
-                <h2 style="margin-bottom: 20px;">📝 작업 관리</h2>
-                
-                <div class="filters">
-                    <select id="tasks-filter-status" onchange="loadTasks()">
-                        <option value="">전체</option>
-                        <option value="pending">대기중</option>
-                        <option value="assigned">진행중</option>
-                        <option value="completed">완료</option>
-                    </select>
-                </div>
-                
-                <div class="card">
-                    <div class="card-body">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>스토어명</th>
-                                    <th>키워드</th>
-                                    <th>상태</th>
-                                    <th>담당자</th>
-                                    <th>생성일</th>
-                                    <th>완료일</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tasks-table"></tbody>
-                        </table>
-                        <div class="pagination" id="tasks-pagination"></div>
                     </div>
                 </div>
             </div>
             
             <!-- 출금 관리 -->
             <div id="page-withdrawals" class="hidden">
-                <h2 style="margin-bottom: 20px;">🏧 출금 관리</h2>
-                
-                <div class="filters">
-                    <select id="withdrawals-filter-status" onchange="loadWithdrawals()">
-                        <option value="pending">대기중</option>
-                        <option value="completed">완료</option>
-                        <option value="rejected">거절</option>
-                    </select>
-                </div>
+                <h2 style="margin-bottom: 20px;">💰 출금 요청</h2>
                 
                 <div class="card">
                     <div class="card-body">
@@ -432,8 +347,7 @@
                                     <th>은행</th>
                                     <th>계좌번호</th>
                                     <th>예금주</th>
-                                    <th>현재잔액</th>
-                                    <th>신청일</th>
+                                    <th>요청일</th>
                                     <th>액션</th>
                                 </tr>
                             </thead>
@@ -445,402 +359,241 @@
         </div>
     </div>
     
-    <!-- 리워드 조정 모달 -->
-    <div id="reward-modal" class="modal-overlay hidden" onclick="if(event.target===this) closeRewardModal()">
-        <div class="modal">
-            <h3>💰 리워드 조정</h3>
-            <p style="margin-bottom: 15px;">유저: <strong id="modal-user-id"></strong></p>
-            <input type="number" id="modal-amount" class="form-control" placeholder="조정 금액 (+/-)">
-            <input type="text" id="modal-reason" class="form-control" placeholder="사유" style="margin-top: 10px;">
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeRewardModal()">취소</button>
-                <button class="btn btn-primary" onclick="submitRewardAdjust()">적용</button>
-            </div>
-        </div>
-    </div>
-
-<script>
-// ==================== 설정 ====================
-const API_SERVER = 'https://capapi-production.up.railway.app';  // Railway URL
-
-let currentPage = {
-    results: 1,
-    users: 1,
-    tasks: 1
-};
-
-// ==================== 로그인 ====================
-function adminLogin() {
-    const password = document.getElementById('admin-password').value;
-    
-    fetch(API_SERVER + '/api/admin/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({password})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('admin-screen').classList.remove('hidden');
-            loadDashboard();
-        } else {
-            alert(data.message || '로그인 실패');
+    <script>
+        const API_SERVER = 'https://capapi-production.up.railway.app';
+        
+        // 로그인
+        async function adminLogin() {
+            const password = document.getElementById('admin-password').value;
+            
+            const resp = await fetch(`${API_SERVER}/api/admin/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password})
+            });
+            const data = await resp.json();
+            
+            if (data.success) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('admin-container').style.display = 'block';
+                loadDashboard();
+            } else {
+                alert('비밀번호가 틀립니다');
+            }
         }
-    });
-}
-
-// ==================== 페이지 전환 ====================
-function showPage(page) {
-    document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
-    document.getElementById('page-' + page).classList.remove('hidden');
-    
-    switch(page) {
-        case 'dashboard': loadDashboard(); break;
-        case 'results': loadResults(); break;
-        case 'users': loadUsers(); break;
-        case 'tasks': loadTasks(); break;
-        case 'withdrawals': loadWithdrawals(); break;
-    }
-}
-
-// ==================== 대시보드 ====================
-function loadDashboard() {
-    fetch(API_SERVER + '/api/admin/stats')
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) return;
-            const s = data.stats;
+        
+        // 페이지 전환
+        function showPage(page) {
+            document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+            event.target.classList.add('active');
             
-            document.getElementById('stats-grid').innerHTML = `
-                <div class="stat-card primary">
-                    <h3>총 수집 결과</h3>
-                    <div class="value">${s.total_results.toLocaleString()}</div>
-                    <div class="sub">오늘 +${s.today_results}</div>
-                </div>
-                <div class="stat-card success">
-                    <h3>사용 완료</h3>
-                    <div class="value">${s.used_results.toLocaleString()}</div>
-                    <div class="sub">미사용 ${(s.total_results - s.used_results).toLocaleString()}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>총 유저</h3>
-                    <div class="value">${s.total_users.toLocaleString()}</div>
-                    <div class="sub">오늘 가입 +${s.today_users}</div>
-                </div>
-                <div class="stat-card warning">
-                    <h3>대기 중 작업</h3>
-                    <div class="value">${s.pending_tasks.toLocaleString()}</div>
-                    <div class="sub">진행 중 ${s.assigned_tasks}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>총 지급 포인트</h3>
-                    <div class="value">${s.total_rewards.toLocaleString()}P</div>
-                </div>
-                <div class="stat-card danger">
-                    <h3>출금 대기</h3>
-                    <div class="value">${s.pending_withdrawals}건</div>
-                    <div class="sub">${s.pending_withdraw_amount.toLocaleString()}P</div>
-                </div>
-            `;
-        });
-}
-
-// ==================== 수집 결과 ====================
-function loadResults(page = 1) {
-    currentPage.results = page;
-    const used = document.getElementById('results-filter-used').value;
-    const search = document.getElementById('results-search').value;
-    
-    const params = new URLSearchParams({page, per_page: 30});
-    if (used) params.append('used', used);
-    if (search) params.append('search', search);
-    
-    fetch(API_SERVER + '/api/admin/results?' + params)
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) return;
+            document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
+            document.getElementById('page-' + page).classList.remove('hidden');
             
-            const tbody = document.getElementById('results-table');
-            tbody.innerHTML = data.results.map(r => `
-                <tr>
-                    <td class="checkbox-cell">
-                        <input type="checkbox" class="result-checkbox" value="${r.id}">
-                    </td>
-                    <td><a href="${r.store_url}" target="_blank">${r.store_name || '-'}</a></td>
-                    <td>${r.seller_name || '-'}</td>
-                    <td>${r.business_number || '-'}</td>
-                    <td>${r.representative || '-'}</td>
-                    <td>${r.phone || '-'}</td>
-                    <td>${r.email || '-'}</td>
-                    <td>
-                        <input type="checkbox" ${r.used ? 'checked' : ''} 
-                               onchange="updateResultUsed(${r.id}, this.checked)">
-                    </td>
-                    <td>
-                        <input type="text" class="memo-input" value="${r.memo || ''}" 
-                               placeholder="메모" onblur="updateResultMemo(${r.id}, this.value)">
-                    </td>
-                    <td>${formatDate(r.created_at)}</td>
-                </tr>
-            `).join('');
-            
-            renderPagination('results', data.total, data.page, data.per_page);
-        });
-}
-
-function updateResultUsed(id, used) {
-    fetch(API_SERVER + `/api/admin/results/${id}/update`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({used})
-    }).then(() => showToast('업데이트 완료'));
-}
-
-function updateResultMemo(id, memo) {
-    fetch(API_SERVER + `/api/admin/results/${id}/update`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({memo})
-    });
-}
-
-function toggleAllResults(checkbox) {
-    document.querySelectorAll('.result-checkbox').forEach(cb => cb.checked = checkbox.checked);
-}
-
-function bulkUpdateUsed(used) {
-    const ids = Array.from(document.querySelectorAll('.result-checkbox:checked')).map(cb => parseInt(cb.value));
-    if (!ids.length) return alert('선택된 항목이 없습니다.');
-    
-    fetch(API_SERVER + '/api/admin/results/bulk-update', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ids, used})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`${data.updated}개 업데이트`);
-            loadResults(currentPage.results);
+            switch(page) {
+                case 'dashboard': loadDashboard(); break;
+                case 'keywords': loadKeywords(); break;
+                case 'results': loadResults(); break;
+                case 'users': loadUsers(); break;
+                case 'withdrawals': loadWithdrawals(); break;
+            }
         }
-    });
-}
-
-function exportResults() {
-    const used = document.getElementById('results-filter-used').value;
-    
-    fetch(API_SERVER + '/api/admin/results/export?used=' + used)
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) return;
+        
+        // 대시보드
+        async function loadDashboard() {
+            const resp = await fetch(`${API_SERVER}/api/admin/stats`);
+            const data = await resp.json();
             
-            const headers = ['스토어명', '상호명', '사업자번호', '대표자', '연락처', '이메일', '주소', 'URL', '사용', '메모', '수집일'];
-            const rows = data.results.map(r => [
-                r.store_name, r.seller_name, r.business_number, r.representative,
-                r.phone, r.email, r.address, r.store_url, r.used ? 'Y' : 'N', r.memo, r.created_at
-            ]);
-            
-            const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c || ''}"`).join(','))].join('\n');
-            const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `results_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
-        });
-}
-
-// ==================== 유저 관리 ====================
-function loadUsers(page = 1) {
-    currentPage.users = page;
-    const search = document.getElementById('users-search').value;
-    
-    const params = new URLSearchParams({page, per_page: 30});
-    if (search) params.append('search', search);
-    
-    fetch(API_SERVER + '/api/admin/users?' + params)
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) return;
-            
-            const tbody = document.getElementById('users-table');
-            tbody.innerHTML = data.users.map(u => `
-                <tr>
-                    <td>${u.user_id}</td>
-                    <td>${u.rewards.toLocaleString()}P</td>
-                    <td>${u.solved_count}</td>
-                    <td>${formatDate(u.created_at)}</td>
-                    <td>${u.last_login ? formatDate(u.last_login) : '-'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="openRewardModal('${u.user_id}')">
-                            리워드 조정
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-            
-            renderPagination('users', data.total, data.page, data.per_page);
-        });
-}
-
-function openRewardModal(userId) {
-    document.getElementById('modal-user-id').textContent = userId;
-    document.getElementById('modal-amount').value = '';
-    document.getElementById('modal-reason').value = '';
-    document.getElementById('reward-modal').classList.remove('hidden');
-}
-
-function closeRewardModal() {
-    document.getElementById('reward-modal').classList.add('hidden');
-}
-
-function submitRewardAdjust() {
-    const userId = document.getElementById('modal-user-id').textContent;
-    const amount = parseInt(document.getElementById('modal-amount').value);
-    const reason = document.getElementById('modal-reason').value || '관리자 조정';
-    
-    if (!amount) return alert('금액을 입력하세요');
-    
-    fetch(API_SERVER + `/api/admin/users/${userId}/adjust-rewards`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({amount, reason})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showToast('리워드 조정 완료');
-            closeRewardModal();
-            loadUsers(currentPage.users);
+            if (data.success) {
+                document.getElementById('stat-results').textContent = data.stats.total_results;
+                document.getElementById('stat-unused').textContent = data.stats.unused_results;
+                document.getElementById('stat-uids').textContent = data.stats.pending_uids;
+                document.getElementById('stat-sessions').textContent = data.stats.active_sessions;
+                document.getElementById('stat-users').textContent = data.stats.total_users;
+                document.getElementById('stat-today').textContent = data.stats.today_results;
+            }
         }
-    });
-}
-
-// ==================== 작업 관리 ====================
-function loadTasks(page = 1) {
-    currentPage.tasks = page;
-    const status = document.getElementById('tasks-filter-status').value;
-    
-    const params = new URLSearchParams({page, per_page: 30});
-    if (status) params.append('status', status);
-    
-    fetch(API_SERVER + '/api/admin/tasks?' + params)
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) return;
+        
+        // 키워드
+        async function loadKeywords() {
+            const resp = await fetch(`${API_SERVER}/api/admin/keywords`);
+            const data = await resp.json();
             
-            const statusBadge = {
-                pending: '<span class="badge badge-warning">대기중</span>',
-                assigned: '<span class="badge badge-info">진행중</span>',
-                completed: '<span class="badge badge-success">완료</span>'
-            };
+            if (data.success) {
+                document.getElementById('keywords-table').innerHTML = data.keywords.map(k => `
+                    <tr>
+                        <td><strong>${k.keyword}</strong></td>
+                        <td>${k.priority}</td>
+                        <td>
+                            <input type="checkbox" ${k.is_active ? 'checked' : ''} 
+                                   onchange="updateKeyword(${k.id}, 'is_active', this.checked)">
+                        </td>
+                        <td>${formatDate(k.created_at)}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="deleteKeyword(${k.id})">삭제</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function addKeyword() {
+            const keyword = document.getElementById('new-keyword').value.trim();
+            const priority = parseInt(document.getElementById('new-priority').value) || 0;
             
-            const tbody = document.getElementById('tasks-table');
-            tbody.innerHTML = data.tasks.map(t => `
-                <tr>
-                    <td>${t.id}</td>
-                    <td><a href="${t.store_url}" target="_blank">${t.store_name || '-'}</a></td>
-                    <td>${t.keyword || '-'}</td>
-                    <td>${statusBadge[t.status] || t.status}</td>
-                    <td>${t.assigned_to || '-'}</td>
-                    <td>${formatDate(t.created_at)}</td>
-                    <td>${t.completed_at ? formatDate(t.completed_at) : '-'}</td>
-                </tr>
-            `).join('');
+            if (!keyword) return alert('키워드를 입력하세요');
             
-            renderPagination('tasks', data.total, data.page, data.per_page);
-        });
-}
-
-// ==================== 출금 관리 ====================
-function loadWithdrawals() {
-    const status = document.getElementById('withdrawals-filter-status').value;
-    
-    fetch(API_SERVER + '/api/admin/withdrawals?status=' + status)
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) return;
+            await fetch(`${API_SERVER}/api/admin/keywords`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({keyword, priority})
+            });
             
-            const tbody = document.getElementById('withdrawals-table');
-            tbody.innerHTML = data.withdrawals.map(w => `
-                <tr>
-                    <td>${w.user_id}</td>
-                    <td>${w.amount.toLocaleString()}P</td>
-                    <td>${w.bank_name}</td>
-                    <td>${w.account_number}</td>
-                    <td>${w.account_holder}</td>
-                    <td>${(w.current_rewards || 0).toLocaleString()}P</td>
-                    <td>${formatDate(w.created_at)}</td>
-                    <td>
-                        ${w.status === 'pending' ? `
+            document.getElementById('new-keyword').value = '';
+            loadKeywords();
+        }
+        
+        async function updateKeyword(id, field, value) {
+            await fetch(`${API_SERVER}/api/admin/keywords/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({[field]: value})
+            });
+        }
+        
+        async function deleteKeyword(id) {
+            if (!confirm('삭제하시겠습니까?')) return;
+            await fetch(`${API_SERVER}/api/admin/keywords/${id}`, {method: 'DELETE'});
+            loadKeywords();
+        }
+        
+        // 결과
+        async function loadResults() {
+            const used = document.getElementById('filter-used').value;
+            const search = document.getElementById('filter-search').value;
+            
+            const params = new URLSearchParams();
+            if (used) params.append('used', used);
+            if (search) params.append('search', search);
+            
+            const resp = await fetch(`${API_SERVER}/api/admin/results?${params}`);
+            const data = await resp.json();
+            
+            if (data.success) {
+                document.getElementById('results-table').innerHTML = data.results.map(r => `
+                    <tr>
+                        <td>${r.store_name || '-'}</td>
+                        <td>${r.business_number || '-'}</td>
+                        <td>${r.representative || '-'}</td>
+                        <td>${r.phone || '-'}</td>
+                        <td>${r.email || '-'}</td>
+                        <td>${r.solved_by || '-'}</td>
+                        <td>
+                            <span class="badge ${r.used ? 'badge-success' : 'badge-warning'}">
+                                ${r.used ? '사용' : '미사용'}
+                            </span>
+                        </td>
+                        <td>${formatDate(r.created_at)}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function exportResults() {
+            const resp = await fetch(`${API_SERVER}/api/admin/results/export`);
+            const data = await resp.json();
+            
+            if (data.success) {
+                const csv = [
+                    ['스토어', '상호명', '사업자번호', '대표자', '연락처', '이메일', '주소', '해결자', '수집일'].join(','),
+                    ...data.results.map(r => [
+                        r.store_name, r.seller_name, r.business_number, r.representative,
+                        r.phone, r.email, r.address, r.solved_by, r.created_at
+                    ].join(','))
+                ].join('\n');
+                
+                const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8;'});
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'results.csv';
+                link.click();
+            }
+        }
+        
+        // 유저
+        async function loadUsers() {
+            const resp = await fetch(`${API_SERVER}/api/admin/users`);
+            const data = await resp.json();
+            
+            if (data.success) {
+                document.getElementById('users-table').innerHTML = data.users.map(u => `
+                    <tr>
+                        <td>${u.user_id}</td>
+                        <td>${u.rewards.toLocaleString()}P</td>
+                        <td>${u.solved_count}</td>
+                        <td>${formatDate(u.created_at)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" 
+                                    onclick="adjustRewards('${u.user_id}')">포인트 조정</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function adjustRewards(userId) {
+            const amount = prompt('조정할 포인트 (음수 가능)');
+            if (!amount) return;
+            
+            await fetch(`${API_SERVER}/api/admin/users/${userId}/adjust-rewards`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({amount: parseInt(amount)})
+            });
+            
+            loadUsers();
+        }
+        
+        // 출금
+        async function loadWithdrawals() {
+            const resp = await fetch(`${API_SERVER}/api/admin/withdrawals?status=pending`);
+            const data = await resp.json();
+            
+            if (data.success) {
+                document.getElementById('withdrawals-table').innerHTML = data.withdrawals.map(w => `
+                    <tr>
+                        <td>${w.user_id}</td>
+                        <td>${w.amount.toLocaleString()}P</td>
+                        <td>${w.bank_name || '-'}</td>
+                        <td>${w.account_number || '-'}</td>
+                        <td>${w.account_holder || '-'}</td>
+                        <td>${formatDate(w.created_at)}</td>
+                        <td>
                             <button class="btn btn-sm btn-success" onclick="processWithdrawal(${w.id}, 'approve')">승인</button>
                             <button class="btn btn-sm btn-danger" onclick="processWithdrawal(${w.id}, 'reject')">거절</button>
-                        ` : `
-                            <span class="badge ${w.status === 'completed' ? 'badge-success' : 'badge-danger'}">
-                                ${w.status === 'completed' ? '완료' : '거절'}
-                            </span>
-                        `}
-                    </td>
-                </tr>
-            `).join('');
-        });
-}
-
-function processWithdrawal(id, action) {
-    const actionText = action === 'approve' ? '승인' : '거절';
-    if (!confirm(`출금 요청을 ${actionText}하시겠습니까?`)) return;
-    
-    fetch(API_SERVER + `/api/admin/withdrawals/${id}/process`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`출금 ${actionText} 완료`);
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function processWithdrawal(id, action) {
+            if (!confirm(action === 'approve' ? '승인하시겠습니까?' : '거절하시겠습니까?')) return;
+            
+            await fetch(`${API_SERVER}/api/admin/withdrawals/${id}/process`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action})
+            });
+            
             loadWithdrawals();
         }
-    });
-}
-
-// ==================== 유틸리티 ====================
-function formatDate(dateStr) {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-
-function renderPagination(type, total, page, perPage) {
-    const totalPages = Math.ceil(total / perPage);
-    const container = document.getElementById(type + '-pagination');
-    
-    let html = `<button ${page <= 1 ? 'disabled' : ''} onclick="load${capitalize(type)}(${page-1})">이전</button>`;
-    
-    for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) {
-        html += `<button class="${i === page ? 'active' : ''}" onclick="load${capitalize(type)}(${i})">${i}</button>`;
-    }
-    
-    html += `<button ${page >= totalPages ? 'disabled' : ''} onclick="load${capitalize(type)}(${page+1})">다음</button>`;
-    html += `<span style="margin-left: 10px; color: #666;">총 ${total.toLocaleString()}개</span>`;
-    
-    container.innerHTML = html;
-}
-
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = 'toast ' + type;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-</script>
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+        }
+    </script>
 </body>
 </html>
