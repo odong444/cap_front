@@ -3,771 +3,882 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>캡챠 관리자</title>
+    <title>캡챠 풀이 - 포인트 적립</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: #0f0f23; color: #ccc; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: center;
+        }
+        .header h1 { font-size: 18px; margin-bottom: 3px; }
+        .header p { opacity: 0.9; font-size: 12px; }
         
-        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: #1a1a2e; padding: 40px; border-radius: 15px; width: 350px; }
-        .login-box h2 { color: #fff; margin-bottom: 25px; text-align: center; }
-        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: none; border-radius: 8px; background: #16213e; color: #fff; }
-        .login-box button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #e94560; color: #fff; cursor: pointer; }
+        .content { padding: 15px; }
         
-        .admin-container { display: none; }
-        .admin-container.active { display: flex; min-height: 100vh; }
+        /* 로그인/회원가입 폼 */
+        .login-form input, .login-form select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        .login-form input:focus, .login-form select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .login-form select {
+            background: white;
+            cursor: pointer;
+        }
+        .form-row {
+            position: relative;
+            margin-bottom: 5px;
+        }
+        .check-msg {
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .check-msg.available { color: #27ae60; }
+        .check-msg.unavailable { color: #e74c3c; }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 10px;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
         
-        .sidebar { width: 220px; background: #1a1a2e; padding: 20px 0; }
-        .sidebar h2 { color: #fff; padding: 0 20px 20px; font-size: 1.3em; }
-        .sidebar a { display: block; padding: 12px 20px; color: #888; text-decoration: none; border-left: 3px solid transparent; }
-        .sidebar a:hover, .sidebar a.active { background: #16213e; color: #fff; border-left-color: #e94560; }
-        .sidebar .badge { background: #e94560; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 5px; }
+        /* 대시보드 */
+        .dashboard { display: none; }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-card .label {
+            color: #666;
+            font-size: 11px;
+        }
         
-        .main { flex: 1; padding: 25px; overflow-y: auto; }
-        .main h2 { color: #fff; margin-bottom: 25px; }
+        /* 질문 표시 */
+        .question-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #856404;
+        }
         
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: #1a1a2e; padding: 20px; border-radius: 12px; }
-        .stat-card .value { font-size: 2em; font-weight: bold; color: #e94560; }
-        .stat-card .label { color: #666; margin-top: 5px; }
+        /* 작업 영역 */
+        .work-area {
+            display: none;
+            margin-top: 10px;
+        }
+        .screenshot-container {
+            background: #f0f0f0;
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 10px;
+            min-height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            position: relative;
+        }
+        .screenshot-container img {
+            max-width: 100%;
+            min-width: 100%;
+            border-radius: 8px;
+        }
         
-        .card { background: #1a1a2e; border-radius: 12px; margin-bottom: 20px; }
-        .card-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .card-header h3 { color: #fff; font-size: 1.1em; }
-        .card-body { padding: 20px; }
+        /* 결과 오버레이 */
+        .result-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            font-size: 36px;
+            font-weight: bold;
+            z-index: 10;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .result-overlay.show {
+            display: flex;
+        }
+        .result-overlay.correct {
+            background: rgba(39, 174, 96, 0.9);
+            color: white;
+        }
+        .result-overlay.wrong {
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+        }
+        .result-overlay.loading {
+            background: rgba(52, 73, 94, 0.9);
+            color: white;
+        }
         
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
-        th { color: #888; font-weight: normal; }
+        /* 로딩 아이콘 애니메이션 */
+        .loading-icon {
+            font-size: 48px;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
         
-        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-        .btn-primary { background: #e94560; color: #fff; }
-        .btn-secondary { background: #333; color: #fff; }
-        .btn-success { background: #10b981; color: #fff; }
-        .btn-danger { background: #ef4444; color: #fff; }
-        .btn-warning { background: #f59e0b; color: #fff; }
-        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .hidden { display: none !important; }
+        .answer-form {
+            display: flex;
+            gap: 10px;
+        }
+        .answer-form input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+        .answer-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .answer-form input:disabled {
+            background: #f0f0f0;
+            cursor: not-allowed;
+        }
+        .answer-form button {
+            padding: 15px 25px;
+        }
         
-        .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .filters input, .filters select { padding: 10px; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; }
+        /* 상태 표시 */
+        .status {
+            text-align: center;
+            padding: 8px;
+            color: #666;
+            font-size: 13px;
+        }
+        .status.waiting { color: #f39c12; }
+        .status.working { color: #3498db; }
+        .status.success { color: #27ae60; }
+        .status.error { color: #e74c3c; }
         
-        .form-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: flex-end; }
-        .form-row input, .form-row textarea { flex: 1; min-width: 150px; padding: 10px; border: none; border-radius: 6px; background: #16213e; color: #fff; }
-        .form-row textarea { min-height: 100px; resize: vertical; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-group label { font-size: 12px; color: #888; }
+        /* 메시지 */
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+        }
+        .message.success { background: #d4edda; color: #155724; }
+        .message.error { background: #f8d7da; color: #721c24; }
+        .message.info { background: #e7f1ff; color: #004085; }
         
-        .hidden { display: none; }
-        .toast { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: #fff; padding: 15px 25px; border-radius: 8px; display: none; z-index: 1000; }
-        .toast.show { display: block; }
+        .hidden { display: none !important; }
         
-        .checkbox-cell { width: 30px; }
-        input[type="checkbox"] { width: 16px; height: 16px; }
+        /* 로딩 스피너 */
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,.35);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .status-pending { background: #f59e0b; color: #000; }
-        .status-collecting { background: #3b82f6; color: #fff; }
-        .status-completed { background: #10b981; color: #fff; }
-        .status-approved { background: #10b981; color: #fff; }
-        .status-waiting { background: #f59e0b; color: #000; }
-        
-        .progress-bar { height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 5px; }
-        .progress-bar .fill { height: 100%; background: #10b981; transition: width 0.3s; }
-        
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab { padding: 10px 20px; background: #16213e; border-radius: 8px; cursor: pointer; }
-        .tab.active { background: #e94560; color: #fff; }
-        
-        .user-detail { background: #16213e; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .user-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
-        .user-detail-item { padding: 8px 0; }
-        .user-detail-item label { color: #888; font-size: 12px; display: block; }
-        .user-detail-item span { color: #fff; font-size: 14px; }
-        
-        .user-actions { display: flex; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; }
+        /* TTS 버튼 */
+        .tts-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
-    <div id="login-container" class="login-container">
-        <div class="login-box">
-            <h2>🔐 관리자 로그인</h2>
-            <input type="password" id="admin-password" placeholder="관리자 비밀번호" onkeypress="if(event.keyCode==13) adminLogin()">
-            <button onclick="adminLogin()">로그인</button>
-        </div>
-    </div>
-    
-    <div id="admin-container" class="admin-container">
-        <div class="sidebar">
-            <h2>⚙️ 관리자</h2>
-            <a href="#" class="active" onclick="showPage('dashboard')">📊 대시보드</a>
-            <a href="#" onclick="showPage('keywords')">🔑 키워드</a>
-            <a href="#" onclick="showPage('results')">📋 결과</a>
-            <a href="#" onclick="showPage('users')">👥 유저 <span id="pending-users-badge" class="badge hidden">0</span></a>
-            <a href="#" onclick="showPage('withdrawals')">🏧 출금</a>
+    <div class="container">
+        <div class="header">
+            <h1>💰 캡챠 풀이</h1>
+            <p>문자를 입력하고 포인트를 적립하세요!</p>
         </div>
         
-        <div class="main">
+        <div class="content">
+            <div id="message" class="message"></div>
+            
+            <!-- 로그인 -->
+            <div id="login-section" class="login-form">
+                <input type="text" id="user-id" placeholder="아이디">
+                <input type="password" id="password" placeholder="비밀번호">
+                <button class="btn btn-primary" onclick="login()">로그인</button>
+                <button class="btn btn-secondary" onclick="showRegister()">회원가입</button>
+            </div>
+            
+            <!-- 회원가입 -->
+            <div id="register-section" class="login-form hidden">
+                <h3 style="text-align:center; margin-bottom:15px; color:#333;">회원가입</h3>
+                
+                <div class="form-row">
+                    <input type="text" id="reg-userid" placeholder="아이디 (4자 이상)" onblur="checkUserId()">
+                    <span id="userid-check" class="check-msg"></span>
+                </div>
+                <div class="form-row">
+                    <input type="password" id="reg-password" placeholder="비밀번호 (4자 이상)">
+                </div>
+                <div class="form-row">
+                    <input type="password" id="reg-password-confirm" placeholder="비밀번호 확인">
+                </div>
+                <div class="form-row">
+                    <input type="text" id="reg-name" placeholder="이름">
+                </div>
+                <div class="form-row">
+                    <input type="tel" id="reg-phone" placeholder="연락처 (010-0000-0000)">
+                </div>
+                <div class="form-row">
+                    <input type="email" id="reg-email" placeholder="이메일">
+                </div>
+                
+                <h4 style="margin:15px 0 10px; color:#555; font-size:14px;">💳 출금 계좌 정보</h4>
+                <div class="form-row">
+                    <select id="reg-bank">
+                        <option value="">은행 선택</option>
+                        <option value="국민은행">국민은행</option>
+                        <option value="신한은행">신한은행</option>
+                        <option value="우리은행">우리은행</option>
+                        <option value="하나은행">하나은행</option>
+                        <option value="농협은행">농협은행</option>
+                        <option value="기업은행">기업은행</option>
+                        <option value="카카오뱅크">카카오뱅크</option>
+                        <option value="토스뱅크">토스뱅크</option>
+                        <option value="케이뱅크">케이뱅크</option>
+                        <option value="새마을금고">새마을금고</option>
+                        <option value="우체국">우체국</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="text" id="reg-account" placeholder="계좌번호 (- 없이 숫자만)">
+                </div>
+                <div class="form-row">
+                    <input type="text" id="reg-holder" placeholder="예금주">
+                </div>
+                
+                <button class="btn btn-primary" onclick="register()">가입하기</button>
+                <button class="btn btn-secondary" onclick="showLogin()">로그인으로 돌아가기</button>
+            </div>
+            
             <!-- 대시보드 -->
-            <div id="page-dashboard">
-                <h2>📊 대시보드</h2>
-                <div class="stats-grid">
-                    <div class="stat-card"><div class="value" id="stat-results">0</div><div class="label">총 수집</div></div>
-                    <div class="stat-card"><div class="value" id="stat-today">0</div><div class="label">오늘 수집</div></div>
-                    <div class="stat-card"><div class="value" id="stat-pending">0</div><div class="label">대기 UID</div></div>
-                    <div class="stat-card"><div class="value" id="stat-users">0</div><div class="label">유저 수</div></div>
-                    <div class="stat-card"><div class="value" id="stat-pending-users">0</div><div class="label">승인 대기</div></div>
-                </div>
-            </div>
-            
-            <!-- 키워드 -->
-            <div id="page-keywords" class="hidden">
-                <h2>🔑 키워드 관리</h2>
-                
-                <div class="tabs">
-                    <div class="tab active" onclick="showKeywordTab('single')">단일 등록</div>
-                    <div class="tab" onclick="showKeywordTab('bulk')">대량 등록</div>
+            <div id="dashboard" class="dashboard">
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="value" id="rewards">0</div>
+                        <div class="label">보유 포인트</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="solved">0</div>
+                        <div class="label">해결 횟수</div>
+                    </div>
                 </div>
                 
-                <!-- 단일 등록 -->
-                <div id="keyword-single" class="card">
-                    <div class="card-header"><h3>키워드 추가</h3></div>
-                    <div class="card-body">
-                        <div class="form-row">
-                            <div class="form-group" style="flex:2">
-                                <label>키워드</label>
-                                <input type="text" id="new-keyword" placeholder="키워드 입력">
-                            </div>
-                            <div class="form-group">
-                                <label>수집 개수</label>
-                                <input type="number" id="new-maxcount" value="100" style="width:100px">
-                            </div>
-                            <div class="form-group">
-                                <label>우선순위</label>
-                                <input type="number" id="new-priority" value="0" style="width:80px">
-                            </div>
-                            <button class="btn btn-primary" onclick="addKeyword()">추가</button>
+                <button id="start-btn" class="btn btn-success" onclick="startWork()">
+                    🚀 작업 시작하기
+                </button>
+                <button id="stop-btn" class="btn btn-danger hidden" onclick="stopWork()">
+                    ⏹ 작업 종료
+                </button>
+                
+                <!-- 작업 영역 -->
+                <div id="work-area" class="work-area">
+                    <div id="status-text" class="status waiting">⏳ 작업 대기 중... (브라우저 준비 중)</div>
+                    
+                    <div id="captcha-section" class="hidden">
+                        <div id="question-box" class="question-box">
+                            영수증을 보고 질문에 답하세요
                         </div>
-                    </div>
-                </div>
-                
-                <!-- 대량 등록 -->
-                <div id="keyword-bulk" class="card hidden">
-                    <div class="card-header"><h3>키워드 대량 등록</h3></div>
-                    <div class="card-body">
-                        <div class="form-row">
-                            <div class="form-group" style="flex:3">
-                                <label>키워드 목록 (줄바꿈으로 구분)</label>
-                                <textarea id="bulk-keywords" placeholder="남자양말&#10;여자양말&#10;운동화&#10;..."></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>수집 개수 (공통)</label>
-                                <input type="number" id="bulk-maxcount" value="100" style="width:100px">
-                            </div>
+                        
+                        <div class="screenshot-container">
+                            <img id="screenshot" src="" alt="캡챠 이미지">
+                            <div id="result-overlay" class="result-overlay hidden"></div>
                         </div>
-                        <button class="btn btn-primary" onclick="bulkAddKeywords()">대량 등록</button>
-                    </div>
-                </div>
-                
-                <!-- 키워드 목록 -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3>등록된 키워드</h3>
-                        <button class="btn btn-sm btn-secondary" onclick="loadKeywords()">🔄 새로고침</button>
-                    </div>
-                    <div class="card-body">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>키워드</th>
-                                    <th>상태</th>
-                                    <th>진행</th>
-                                    <th>우선순위</th>
-                                    <th>활성화</th>
-                                    <th>등록일</th>
-                                    <th>액션</th>
-                                </tr>
-                            </thead>
-                            <tbody id="keywords-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 결과 -->
-            <div id="page-results" class="hidden">
-                <h2>📋 수집 결과</h2>
-                <div class="filters">
-                    <select id="filter-used" onchange="loadResults()">
-                        <option value="">전체</option>
-                        <option value="false">미사용</option>
-                        <option value="true">사용완료</option>
-                    </select>
-                    <input type="text" id="filter-search" placeholder="검색" onkeypress="if(event.keyCode==13) loadResults()">
-                    <button class="btn btn-primary" onclick="loadResults()">검색</button>
-                    <button class="btn btn-secondary" onclick="exportCSV()">CSV 내보내기</button>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>결과 목록</h3>
-                        <div>
-                            <button class="btn btn-sm btn-success" onclick="bulkUpdate(true)">선택 사용완료</button>
-                            <button class="btn btn-sm btn-secondary" onclick="bulkUpdate(false)">선택 미사용</button>
+                        
+                        <div class="answer-form">
+                            <input type="text" id="answer-input" placeholder="정답을 입력하세요." 
+                                   onkeypress="if(event.key==='Enter')submitAnswer()">
+                            <button class="tts-btn" onclick="refreshScreenshot()" title="새로고침">🔄</button>
+                            <button class="tts-btn" onclick="speakText()" title="음성으로 듣기">🔊</button>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th class="checkbox-cell"><input type="checkbox" onchange="toggleAll(this)"></th>
-                                    <th>스토어</th><th>상호</th><th>사업자번호</th><th>대표자</th><th>전화</th><th>사용</th><th>수집일</th>
-                                </tr>
-                            </thead>
-                            <tbody id="results-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 유저 -->
-            <div id="page-users" class="hidden">
-                <h2>👥 유저 관리</h2>
-                
-                <div class="tabs">
-                    <div class="tab active" onclick="showUserTab('pending')">승인 대기 <span id="pending-tab-count"></span></div>
-                    <div class="tab" onclick="showUserTab('approved')">승인 완료</div>
-                    <div class="tab" onclick="showUserTab('all')">전체</div>
-                </div>
-                
-                <!-- 승인 대기 유저 목록 -->
-                <div id="users-pending" class="card">
-                    <div class="card-header">
-                        <h3>승인 대기 회원</h3>
-                    </div>
-                    <div class="card-body" id="pending-users-list">
-                        <!-- 동적으로 채워짐 -->
+                        <button class="btn btn-primary" style="margin-top:10px" onclick="submitAnswer()">확인</button>
                     </div>
                 </div>
                 
-                <!-- 승인된 유저 목록 -->
-                <div id="users-approved" class="card hidden">
-                    <div class="card-header">
-                        <h3>승인 완료 회원</h3>
-                    </div>
-                    <div class="card-body">
-                        <table>
-                            <thead><tr><th>아이디</th><th>이름</th><th>연락처</th><th>포인트</th><th>해결수</th><th>가입일</th><th>액션</th></tr></thead>
-                            <tbody id="approved-users-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- 전체 유저 목록 -->
-                <div id="users-all" class="card hidden">
-                    <div class="card-header">
-                        <h3>전체 회원</h3>
-                    </div>
-                    <div class="card-body">
-                        <table>
-                            <thead><tr><th>아이디</th><th>이름</th><th>연락처</th><th>상태</th><th>포인트</th><th>해결수</th><th>가입일</th><th>액션</th></tr></thead>
-                            <tbody id="all-users-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 출금 -->
-            <div id="page-withdrawals" class="hidden">
-                <h2>🏧 출금 관리</h2>
-                <div class="filters">
-                    <select id="filter-wstatus" onchange="loadWithdrawals()">
-                        <option value="pending">대기중</option>
-                        <option value="completed">완료</option>
-                        <option value="rejected">거절</option>
-                    </select>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <table>
-                            <thead><tr><th>유저</th><th>금액</th><th>은행</th><th>계좌</th><th>예금주</th><th>신청일</th><th>액션</th></tr></thead>
-                            <tbody id="withdrawals-table"></tbody>
-                        </table>
-                    </div>
-                </div>
+                <button class="btn btn-secondary" style="margin-top:20px" onclick="logout()">로그아웃</button>
             </div>
         </div>
     </div>
-    
-    <div id="toast" class="toast"></div>
-    
+
     <script>
-        const API = 'https://capapi-production.up.railway.app';
-        let currentUserTab = 'pending';
+        const API_SERVER = 'https://capapi-production.up.railway.app';
         
-        async function adminLogin() {
-            const pw = document.getElementById('admin-password').value;
-            const resp = await fetch(`${API}/api/admin/login`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({password: pw})
-            });
-            const data = await resp.json();
-            
-            if (data.success) {
-                document.getElementById('login-container').style.display = 'none';
-                document.getElementById('admin-container').classList.add('active');
-                loadDashboard();
-                checkPendingUsers();
-            } else {
-                alert('비밀번호 오류');
-            }
+        let currentUser = null;
+        let pollInterval = null;
+        let isWorking = false;
+        let lastMessageShown = '';  // 중복 메시지 방지
+        let isWaitingResult = false;  // 답변 제출 후 결과 대기 중
+        let lastScreenshot = '';  // 이전 스크린샷 (변경 감지용)
+        
+        // 회원가입 폼 보여주기
+        function showRegister() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('register-section').classList.remove('hidden');
         }
         
-        function showPage(page) {
-            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
-            event.target.classList.add('active');
-            document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
-            document.getElementById('page-' + page).classList.remove('hidden');
-            
-            if (page === 'dashboard') loadDashboard();
-            else if (page === 'keywords') loadKeywords();
-            else if (page === 'results') loadResults();
-            else if (page === 'users') loadUsers();
-            else if (page === 'withdrawals') loadWithdrawals();
+        // 로그인 폼 보여주기
+        function showLogin() {
+            document.getElementById('register-section').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
         }
         
-        function showKeywordTab(tab) {
-            document.querySelectorAll('#page-keywords .tabs .tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+        // 아이디 중복 체크
+        async function checkUserId() {
+            const userId = document.getElementById('reg-userid').value.trim();
+            const checkMsg = document.getElementById('userid-check');
             
-            document.getElementById('keyword-single').classList.toggle('hidden', tab !== 'single');
-            document.getElementById('keyword-bulk').classList.toggle('hidden', tab !== 'bulk');
-        }
-        
-        function showUserTab(tab) {
-            currentUserTab = tab;
-            document.querySelectorAll('#page-users .tabs .tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            document.getElementById('users-pending').classList.toggle('hidden', tab !== 'pending');
-            document.getElementById('users-approved').classList.toggle('hidden', tab !== 'approved');
-            document.getElementById('users-all').classList.toggle('hidden', tab !== 'all');
-            
-            loadUsers();
-        }
-        
-        async function checkPendingUsers() {
-            const resp = await fetch(`${API}/api/admin/users?filter=pending`);
-            const data = await resp.json();
-            const count = data.users ? data.users.length : 0;
-            
-            const badge = document.getElementById('pending-users-badge');
-            if (count > 0) {
-                badge.textContent = count;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        }
-        
-        async function loadDashboard() {
-            const resp = await fetch(`${API}/api/admin/stats`);
-            const data = await resp.json();
-            if (data.success) {
-                document.getElementById('stat-results').textContent = data.stats.total_results;
-                document.getElementById('stat-today').textContent = data.stats.today_results;
-                document.getElementById('stat-pending').textContent = data.stats.pending_uids;
-                document.getElementById('stat-users').textContent = data.stats.total_users;
-                document.getElementById('stat-pending-users').textContent = data.stats.pending_users || 0;
-            }
-        }
-        
-        async function loadKeywords() {
-            const resp = await fetch(`${API}/api/admin/keywords`);
-            const data = await resp.json();
-            const tbody = document.getElementById('keywords-table');
-            
-            tbody.innerHTML = data.keywords.map(k => {
-                const statusClass = `status-${k.status || 'pending'}`;
-                const statusText = {pending: '대기', collecting: '수집중', completed: '완료'}[k.status || 'pending'];
-                const progress = k.max_count > 0 ? Math.round((k.collected_count || 0) / k.max_count * 100) : 0;
-                
-                return `
-                <tr>
-                    <td><strong>${k.keyword}</strong></td>
-                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    <td>
-                        ${k.collected_count || 0} / ${k.max_count}
-                        <div class="progress-bar"><div class="fill" style="width:${progress}%"></div></div>
-                    </td>
-                    <td>
-                        <input type="number" value="${k.priority}" style="width:60px;background:#16213e;border:none;color:#fff;padding:5px;border-radius:4px;" 
-                            onchange="updateKeyword(${k.id},'priority',this.value)">
-                    </td>
-                    <td><input type="checkbox" ${k.is_active ? 'checked' : ''} onchange="updateKeyword(${k.id},'is_active',this.checked)"></td>
-                    <td>${formatDate(k.created_at)}</td>
-                    <td>
-                        ${k.status === 'completed' ? `<button class="btn btn-sm btn-warning" onclick="resetKeyword(${k.id})">다시수집</button>` : ''}
-                        <button class="btn btn-sm btn-danger" onclick="deleteKeyword(${k.id})">삭제</button>
-                    </td>
-                </tr>
-            `}).join('');
-        }
-        
-        async function addKeyword() {
-            const keyword = document.getElementById('new-keyword').value.trim();
-            if (!keyword) return alert('키워드 입력');
-            
-            await fetch(`${API}/api/admin/keywords`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    keyword,
-                    priority: parseInt(document.getElementById('new-priority').value) || 0,
-                    max_count: parseInt(document.getElementById('new-maxcount').value) || 100
-                })
-            });
-            document.getElementById('new-keyword').value = '';
-            toast('키워드 추가됨');
-            loadKeywords();
-        }
-        
-        async function bulkAddKeywords() {
-            const keywords = document.getElementById('bulk-keywords').value.trim();
-            if (!keywords) return alert('키워드 입력');
-            
-            const resp = await fetch(`${API}/api/admin/keywords/bulk`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    keywords,
-                    max_count: parseInt(document.getElementById('bulk-maxcount').value) || 100
-                })
-            });
-            const data = await resp.json();
-            
-            document.getElementById('bulk-keywords').value = '';
-            toast(`${data.added}개 키워드 추가됨`);
-            loadKeywords();
-        }
-        
-        async function updateKeyword(id, field, value) {
-            const body = {};
-            body[field] = field === 'is_active' ? value : parseInt(value);
-            await fetch(`${API}/api/admin/keywords/${id}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-            });
-            toast('업데이트됨');
-        }
-        
-        async function resetKeyword(id) {
-            if (!confirm('다시 수집하시겠습니까?')) return;
-            await fetch(`${API}/api/collector/reset-keyword/${id}`, {method: 'POST'});
-            toast('다시 수집 대기 상태로 변경됨');
-            loadKeywords();
-        }
-        
-        async function deleteKeyword(id) {
-            if (!confirm('삭제?')) return;
-            await fetch(`${API}/api/admin/keywords/${id}`, {method: 'DELETE'});
-            toast('삭제됨');
-            loadKeywords();
-        }
-        
-        async function loadResults() {
-            const used = document.getElementById('filter-used').value;
-            const search = document.getElementById('filter-search').value;
-            const resp = await fetch(`${API}/api/admin/results?used=${used}&search=${search}`);
-            const data = await resp.json();
-            
-            const tbody = document.getElementById('results-table');
-            tbody.innerHTML = data.results.map(r => `
-                <tr>
-                    <td class="checkbox-cell"><input type="checkbox" value="${r.id}"></td>
-                    <td>${r.store_name || '-'}</td>
-                    <td>${r.seller_name || '-'}</td>
-                    <td>${r.business_number || '-'}</td>
-                    <td>${r.representative || '-'}</td>
-                    <td>${r.phone || '-'}</td>
-                    <td><input type="checkbox" ${r.used ? 'checked' : ''} onchange="updateResult(${r.id}, this.checked)"></td>
-                    <td>${formatDate(r.created_at)}</td>
-                </tr>
-            `).join('');
-        }
-        
-        async function updateResult(id, used) {
-            await fetch(`${API}/api/admin/results/${id}/update`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({used})
-            });
-        }
-        
-        function toggleAll(checkbox) {
-            document.querySelectorAll('#results-table input[type="checkbox"]').forEach(cb => cb.checked = checkbox.checked);
-        }
-        
-        async function bulkUpdate(used) {
-            const ids = [...document.querySelectorAll('#results-table input[type="checkbox"]:checked')].map(cb => parseInt(cb.value));
-            if (!ids.length) return alert('선택된 항목 없음');
-            
-            await fetch(`${API}/api/admin/results/bulk-update`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ids, used})
-            });
-            toast(`${ids.length}개 업데이트됨`);
-            loadResults();
-        }
-        
-        async function exportCSV() {
-            const resp = await fetch(`${API}/api/admin/results/export`);
-            const data = await resp.json();
-            
-            const headers = ['스토어명','상호명','사업자번호','대표자','전화','이메일','주소','수집일','사용여부'];
-            const rows = data.results.map(r => [
-                r.store_name, r.seller_name, r.business_number, r.representative,
-                r.phone, r.email, r.address, r.created_at, r.used ? 'Y' : 'N'
-            ]);
-            
-            const csv = [headers, ...rows].map(r => r.map(c => `"${c || ''}"`).join(',')).join('\n');
-            const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `results_${new Date().toISOString().slice(0,10)}.csv`;
-            a.click();
-        }
-        
-        async function loadUsers() {
-            let filter = '';
-            if (currentUserTab === 'pending') filter = 'pending';
-            else if (currentUserTab === 'approved') filter = 'approved';
-            
-            const resp = await fetch(`${API}/api/admin/users?filter=${filter}`);
-            const data = await resp.json();
-            
-            if (currentUserTab === 'pending') {
-                renderPendingUsers(data.users || []);
-                document.getElementById('pending-tab-count').textContent = `(${data.users ? data.users.length : 0})`;
-            } else if (currentUserTab === 'approved') {
-                renderApprovedUsers(data.users || []);
-            } else {
-                renderAllUsers(data.users || []);
-            }
-            
-            checkPendingUsers();
-        }
-        
-        function renderPendingUsers(users) {
-            const container = document.getElementById('pending-users-list');
-            
-            if (users.length === 0) {
-                container.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">승인 대기 중인 회원이 없습니다.</p>';
+            if (!userId) {
+                checkMsg.textContent = '';
+                checkMsg.className = 'check-msg';
                 return;
             }
             
-            container.innerHTML = users.map(u => `
-                <div class="user-detail">
-                    <div class="user-detail-grid">
-                        <div class="user-detail-item">
-                            <label>아이디</label>
-                            <span><strong>${u.user_id}</strong></span>
-                        </div>
-                        <div class="user-detail-item">
-                            <label>이름</label>
-                            <span>${u.name || '-'}</span>
-                        </div>
-                        <div class="user-detail-item">
-                            <label>연락처</label>
-                            <span>${u.phone || '-'}</span>
-                        </div>
-                        <div class="user-detail-item">
-                            <label>이메일</label>
-                            <span>${u.email || '-'}</span>
-                        </div>
-                        <div class="user-detail-item">
-                            <label>은행</label>
-                            <span>${u.bank_name || '-'}</span>
-                        </div>
-                        <div class="user-detail-item">
-                            <label>계좌번호</label>
-                            <span>${u.bank_account || '-'}</span>
-                        </div>
-                        <div class="user-detail-item">
-                            <label>예금주</label>
-                            <span>${u.account_holder || '-'}</span>
-                        </div>
-                        <div class="user-detail-item">
-                            <label>가입일</label>
-                            <span>${formatDate(u.created_at)}</span>
-                        </div>
-                    </div>
-                    <div class="user-actions">
-                        <button class="btn btn-success" onclick="approveUser('${u.user_id}')">✅ 승인</button>
-                        <button class="btn btn-danger" onclick="rejectUser('${u.user_id}')">❌ 거절 (삭제)</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        function renderApprovedUsers(users) {
-            const tbody = document.getElementById('approved-users-table');
-            tbody.innerHTML = users.map(u => `
-                <tr>
-                    <td>${u.user_id}</td>
-                    <td>${u.name || '-'}</td>
-                    <td>${u.phone || '-'}</td>
-                    <td>${(u.rewards || 0).toLocaleString()}</td>
-                    <td>${u.solved_count || 0}</td>
-                    <td>${formatDate(u.created_at)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-secondary" onclick="adjustRewards('${u.user_id}')">포인트 조정</button>
-                        <button class="btn btn-sm btn-warning" onclick="suspendUser('${u.user_id}')">정지</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-        
-        function renderAllUsers(users) {
-            const tbody = document.getElementById('all-users-table');
-            tbody.innerHTML = users.map(u => `
-                <tr>
-                    <td>${u.user_id}</td>
-                    <td>${u.name || '-'}</td>
-                    <td>${u.phone || '-'}</td>
-                    <td><span class="status-badge ${u.is_approved ? 'status-approved' : 'status-waiting'}">${u.is_approved ? '승인' : '대기'}</span></td>
-                    <td>${(u.rewards || 0).toLocaleString()}</td>
-                    <td>${u.solved_count || 0}</td>
-                    <td>${formatDate(u.created_at)}</td>
-                    <td>
-                        ${!u.is_approved ? `<button class="btn btn-sm btn-success" onclick="approveUser('${u.user_id}')">승인</button>` : ''}
-                        <button class="btn btn-sm btn-secondary" onclick="adjustRewards('${u.user_id}')">포인트</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-        
-        async function approveUser(userId) {
-            if (!confirm(`'${userId}' 회원을 승인하시겠습니까?`)) return;
+            if (userId.length < 4) {
+                checkMsg.textContent = '4자 이상 입력하세요';
+                checkMsg.className = 'check-msg unavailable';
+                return;
+            }
             
-            const resp = await fetch(`${API}/api/admin/users/${userId}/approve`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'}
-            });
-            const data = await resp.json();
+            try {
+                const resp = await fetch(`${API_SERVER}/api/check-userid`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: userId})
+                });
+                const data = await resp.json();
+                
+                if (data.available) {
+                    checkMsg.textContent = '✓ ' + data.message;
+                    checkMsg.className = 'check-msg available';
+                } else {
+                    checkMsg.textContent = '✗ ' + data.message;
+                    checkMsg.className = 'check-msg unavailable';
+                }
+            } catch (e) {
+                checkMsg.textContent = '';
+            }
+        }
+        
+        // 회원가입
+        async function register() {
+            const userId = document.getElementById('reg-userid').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const passwordConfirm = document.getElementById('reg-password-confirm').value;
+            const name = document.getElementById('reg-name').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const bankName = document.getElementById('reg-bank').value;
+            const bankAccount = document.getElementById('reg-account').value.trim();
+            const accountHolder = document.getElementById('reg-holder').value.trim();
             
-            if (data.success) {
-                toast('회원 승인 완료');
-                loadUsers();
+            // 유효성 검사
+            if (!userId || userId.length < 4) {
+                showMessage('아이디는 4자 이상이어야 합니다.', 'error');
+                return;
+            }
+            if (!password || password.length < 4) {
+                showMessage('비밀번호는 4자 이상이어야 합니다.', 'error');
+                return;
+            }
+            if (password !== passwordConfirm) {
+                showMessage('비밀번호가 일치하지 않습니다.', 'error');
+                return;
+            }
+            if (!name) {
+                showMessage('이름을 입력하세요.', 'error');
+                return;
+            }
+            if (!phone) {
+                showMessage('연락처를 입력하세요.', 'error');
+                return;
+            }
+            if (!email) {
+                showMessage('이메일을 입력하세요.', 'error');
+                return;
+            }
+            if (!bankName) {
+                showMessage('은행을 선택하세요.', 'error');
+                return;
+            }
+            if (!bankAccount) {
+                showMessage('계좌번호를 입력하세요.', 'error');
+                return;
+            }
+            if (!accountHolder) {
+                showMessage('예금주를 입력하세요.', 'error');
+                return;
+            }
+            
+            try {
+                const resp = await fetch(`${API_SERVER}/api/register`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: userId,
+                        password: password,
+                        password_confirm: passwordConfirm,
+                        name: name,
+                        phone: phone,
+                        email: email,
+                        bank_name: bankName,
+                        bank_account: bankAccount,
+                        account_holder: accountHolder
+                    })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    // 폼 초기화
+                    document.getElementById('reg-userid').value = '';
+                    document.getElementById('reg-password').value = '';
+                    document.getElementById('reg-password-confirm').value = '';
+                    document.getElementById('reg-name').value = '';
+                    document.getElementById('reg-phone').value = '';
+                    document.getElementById('reg-email').value = '';
+                    document.getElementById('reg-bank').value = '';
+                    document.getElementById('reg-account').value = '';
+                    document.getElementById('reg-holder').value = '';
+                    document.getElementById('userid-check').textContent = '';
+                    // 로그인 폼으로 돌아가기
+                    setTimeout(() => showLogin(), 2000);
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (e) {
+                showMessage('서버 연결 실패', 'error');
+            }
+        }
+        
+        // 로그인
+        async function login() {
+            const userId = document.getElementById('user-id').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!userId || !password) {
+                showMessage('아이디와 비밀번호를 입력하세요', 'error');
+                return;
+            }
+            
+            try {
+                const resp = await fetch(`${API_SERVER}/api/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: userId, password})
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    currentUser = {user_id: userId, ...data};
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    showDashboard();
+                } else {
+                    showMessage(data.message || '로그인 실패', 'error');
+                }
+            } catch (e) {
+                showMessage('서버 연결 실패', 'error');
+            }
+        }
+        
+        // 대시보드 표시
+        function showDashboard() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('dashboard').style.display = 'block';
+            updateStats();
+        }
+        
+        // 통계 업데이트
+        async function updateStats() {
+            if (!currentUser) return;
+            
+            try {
+                const resp = await fetch(`${API_SERVER}/api/user/${currentUser.user_id}`);
+                const data = await resp.json();
+                
+                if (data.success) {
+                    document.getElementById('rewards').textContent = data.user.rewards.toLocaleString();
+                    document.getElementById('solved').textContent = data.user.solved_count;
+                }
+            } catch (e) {}
+        }
+        
+        // 작업 시작
+        async function startWork() {
+            if (!currentUser) return;
+            
+            try {
+                const resp = await fetch(`${API_SERVER}/api/session/start`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: currentUser.user_id})
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    isWorking = true;
+                    lastMessageShown = '';
+                    isWaitingResult = false;
+                    lastScreenshot = '';
+                    
+                    document.getElementById('start-btn').classList.add('hidden');
+                    document.getElementById('stop-btn').classList.remove('hidden');
+                    document.getElementById('work-area').style.display = 'block';
+                    
+                    setStatus('waiting', '⏳ 작업 대기 중... (브라우저 준비 중)');
+                    
+                    // 폴링 시작 (0.5초마다 - 빠른 응답)
+                    pollInterval = setInterval(pollSession, 500);
+                    pollSession(); // 즉시 한 번 호출
+                } else {
+                    // 작업자 꽉 참
+                    if (data.error === 'full') {
+                        showMessage(data.message || '작업자가 많아 진행할 수 없습니다. 잠시 후 다시 시도해주세요.', 'error');
+                    } else {
+                        showMessage('작업 시작 실패', 'error');
+                    }
+                }
+            } catch (e) {
+                showMessage('작업 시작 실패', 'error');
+            }
+        }
+        
+        // 세션 상태 폴링 - 수정된 API 호출
+        async function pollSession() {
+            if (!currentUser || !isWorking) return;
+            
+            try {
+                // 올바른 API 경로: /api/session/poll/<user_id>
+                const resp = await fetch(`${API_SERVER}/api/session/poll/${currentUser.user_id}`);
+                const data = await resp.json();
+                
+                if (!data.success) {
+                    setStatus('waiting', '⏳ 세션 준비 중...');
+                    return;
+                }
+                
+                // 메시지가 있으면 처리
+                if (data.message) {
+                    if (data.message.includes('타임아웃') || data.message.includes('종료')) {
+                        showMessage(data.message, 'error');
+                        stopWork();
+                        return;
+                    }
+                }
+                
+                // 스크린샷이 있으면 처리
+                if (data.screenshot) {
+                    // 스크린샷 앞 100자로만 비교 (성능 개선)
+                    const screenshotKey = data.screenshot.substring(0, 100);
+                    const isNewScreenshot = screenshotKey !== lastScreenshot;
+                    
+                    if (isWaitingResult && isNewScreenshot) {
+                        // 결과 대기 중이었고 새 스크린샷이 왔다 = 결과 처리
+                        if (data.message && data.message.includes('틀렸')) {
+                            // 틀림
+                            showResultOverlay('wrong', '❌ 틀렸습니다!');
+                            setTimeout(() => {
+                                hideResultOverlay();
+                                updateScreenshot(data);
+                                isWaitingResult = false;
+                                disableInput(false);
+                            }, 500);
+                        } else {
+                            // 맞음 (새 문제로 넘어감)
+                            showResultOverlay('correct', '✅ 정답!');
+                            updateStats();
+                            setTimeout(() => {
+                                hideResultOverlay();
+                                updateScreenshot(data);
+                                isWaitingResult = false;
+                                disableInput(false);
+                            }, 500);
+                        }
+                        lastScreenshot = screenshotKey;
+                    } else if (!isWaitingResult && isNewScreenshot) {
+                        // 일반 상태 - 새 스크린샷이면 업데이트
+                        updateScreenshot(data);
+                        lastScreenshot = screenshotKey;
+                    }
+                } else {
+                    setStatus('waiting', '⏳ 다음 작업 대기 중...');
+                    document.getElementById('captcha-section').classList.add('hidden');
+                }
+                
+            } catch (e) {
+                console.error('Poll error:', e);
+            }
+        }
+        
+        // 스크린샷 업데이트 함수
+        function updateScreenshot(data) {
+            setStatus('working', '📝 캡챠를 입력하세요!');
+            document.getElementById('screenshot').src = 'data:image/png;base64,' + data.screenshot;
+            document.getElementById('captcha-section').classList.remove('hidden');
+            document.getElementById('answer-input').focus();
+            
+            // 질문 표시 - 항상 업데이트 (틀렸습니다 제거)
+            if (data.message) {
+                let question = data.message.replace(/❌\s*틀렸습니다!\s*/g, '').trim();
+                if (question && question.length > 5) {
+                    document.getElementById('question-box').textContent = question;
+                }
+            }
+        }
+        
+        // 결과 오버레이 표시
+        function showResultOverlay(type, text) {
+            const overlay = document.getElementById('result-overlay');
+            overlay.className = 'result-overlay show ' + type;
+            
+            if (type === 'loading') {
+                overlay.innerHTML = '<div class="spinner"></div><div>확인 중...</div>';
+            } else if (type === 'correct') {
+                overlay.innerHTML = '<div>✅</div><div>정답!</div>';
+            } else if (type === 'wrong') {
+                overlay.innerHTML = '<div>❌</div><div>틀렸습니다!</div>';
             } else {
-                alert(data.message || '승인 실패');
+                overlay.innerHTML = text;
             }
         }
         
-        async function rejectUser(userId) {
-            if (!confirm(`'${userId}' 회원 가입을 거절하고 삭제하시겠습니까?`)) return;
+        // 결과 오버레이 숨기기
+        function hideResultOverlay() {
+            const overlay = document.getElementById('result-overlay');
+            overlay.className = 'result-overlay';
+            overlay.innerHTML = '';
+        }
+        
+        // 입력 비활성화/활성화
+        function disableInput(disabled) {
+            document.getElementById('answer-input').disabled = disabled;
+            const confirmBtn = document.querySelector('#captcha-section .btn-primary');
+            if (confirmBtn) confirmBtn.disabled = disabled;
+        }
+        
+        // 답변 제출 - 수정된 API 호출
+        async function submitAnswer() {
+            const answer = document.getElementById('answer-input').value.trim();
             
-            const resp = await fetch(`${API}/api/admin/users/${userId}/reject`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'}
-            });
-            const data = await resp.json();
+            if (!answer) {
+                showMessage('답변을 입력하세요', 'error');
+                return;
+            }
             
-            if (data.success) {
-                toast('회원 거절 (삭제) 완료');
-                loadUsers();
-            } else {
-                alert(data.message || '거절 실패');
+            // 이미 대기 중이면 무시
+            if (isWaitingResult) return;
+            
+            try {
+                // 로딩 상태 표시
+                isWaitingResult = true;
+                showResultOverlay('loading', '⏳ 확인 중...');
+                disableInput(true);
+                
+                // 올바른 API 경로: /api/session/submit-answer
+                const resp = await fetch(`${API_SERVER}/api/session/submit-answer`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: currentUser.user_id,
+                        answer: answer
+                    })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    document.getElementById('answer-input').value = '';
+                    setStatus('working', '⏳ 답변 확인 중...');
+                    lastMessageShown = '';
+                    // 결과는 pollSession에서 처리
+                } else {
+                    showMessage('답변 제출 실패', 'error');
+                    isWaitingResult = false;
+                    hideResultOverlay();
+                    disableInput(false);
+                }
+            } catch (e) {
+                showMessage('답변 제출 실패', 'error');
+                isWaitingResult = false;
+                hideResultOverlay();
+                disableInput(false);
             }
         }
         
-        async function suspendUser(userId) {
-            if (!confirm(`'${userId}' 회원을 정지하시겠습니까?`)) return;
-            
-            const resp = await fetch(`${API}/api/admin/users/${userId}/suspend`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'}
-            });
-            const data = await resp.json();
-            
-            if (data.success) {
-                toast('회원 정지 완료');
-                loadUsers();
-            } else {
-                alert(data.message || '정지 실패');
+        // 스크린샷 새로고침
+        function refreshScreenshot() {
+            pollSession();
+        }
+        
+        // TTS (간단한 알림)
+        function speakText() {
+            showMessage('음성 기능은 준비 중입니다', 'info');
+        }
+        
+        // 작업 종료
+        async function stopWork() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
             }
-        }
-        
-        async function adjustRewards(userId) {
-            const amount = prompt('조정할 금액 (음수 가능):');
-            if (!amount) return;
             
-            await fetch(`${API}/api/admin/users/${userId}/adjust-rewards`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({amount: parseInt(amount), reason: '관리자 조정'})
-            });
-            toast('포인트 조정됨');
-            loadUsers();
-        }
-        
-        async function loadWithdrawals() {
-            const status = document.getElementById('filter-wstatus').value;
-            const resp = await fetch(`${API}/api/admin/withdrawals?status=${status}`);
-            const data = await resp.json();
+            isWorking = false;
+            isWaitingResult = false;
+            lastScreenshot = '';
+            hideResultOverlay();
+            disableInput(false);
             
-            const tbody = document.getElementById('withdrawals-table');
-            tbody.innerHTML = data.withdrawals.map(w => `
-                <tr>
-                    <td>${w.user_id}</td>
-                    <td>${w.amount.toLocaleString()}</td>
-                    <td>${w.bank_name || '-'}</td>
-                    <td>${w.account_number || '-'}</td>
-                    <td>${w.account_holder || '-'}</td>
-                    <td>${formatDate(w.created_at)}</td>
-                    <td>
-                        ${w.status === 'pending' ? `
-                            <button class="btn btn-sm btn-success" onclick="processWithdrawal(${w.id}, 'approve')">승인</button>
-                            <button class="btn btn-sm btn-danger" onclick="processWithdrawal(${w.id}, 'reject')">거절</button>
-                        ` : w.status}
-                    </td>
-                </tr>
-            `).join('');
-        }
-        
-        async function processWithdrawal(id, action) {
-            if (!confirm(`${action === 'approve' ? '승인' : '거절'}?`)) return;
-            
-            await fetch(`${API}/api/admin/withdrawals/${id}/process`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action})
-            });
-            toast('처리 완료');
-            loadWithdrawals();
-        }
-        
-        function formatDate(d) {
-            if (!d) return '-';
-            return new Date(d).toLocaleString('ko-KR');
-        }
-        
-        function toast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2000);
-        }
-        
-        // 자동 새로고침 (5초마다)
-        setInterval(() => {
-            if (!document.getElementById('page-keywords').classList.contains('hidden')) {
-                loadKeywords();
+            if (currentUser) {
+                try {
+                    await fetch(`${API_SERVER}/api/session/end`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({user_id: currentUser.user_id})
+                    });
+                } catch (e) {}
             }
-            checkPendingUsers();
-        }, 5000);
+            
+            document.getElementById('start-btn').classList.remove('hidden');
+            document.getElementById('stop-btn').classList.add('hidden');
+            document.getElementById('work-area').style.display = 'none';
+            document.getElementById('captcha-section').classList.add('hidden');
+            
+            updateStats();
+        }
+        
+        // 상태 표시
+        function setStatus(type, text) {
+            const el = document.getElementById('status-text');
+            el.className = 'status ' + type;
+            el.textContent = text;
+        }
+        
+        // 메시지 표시
+        function showMessage(text, type) {
+            const el = document.getElementById('message');
+            el.className = 'message ' + type;
+            el.textContent = text;
+            el.style.display = 'block';
+            
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+        
+        // 로그아웃
+        function logout() {
+            stopWork();
+            currentUser = null;
+            localStorage.removeItem('user');
+            
+            document.getElementById('register-section').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('dashboard').style.display = 'none';
+        }
+        
+        // 초기화
+        window.onload = function() {
+            const saved = localStorage.getItem('user');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                showDashboard();
+            }
+        };
     </script>
 </body>
 </html>
